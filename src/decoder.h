@@ -1,4 +1,4 @@
-S#include <cstdint>
+S #include<cstdint>
 #include <iostream>
 #include <unordered_map>
 #include <utility>
@@ -9,7 +9,7 @@ S#include <cstdint>
 #include "operatorTable.h"
 #include "state.h"
 
-struct X86Decoder {
+    struct X86Decoder {
     DecoderState state;
 
     X86Decoder(DecoderState& decoderState) : state(decoderState) {}
@@ -21,31 +21,37 @@ struct X86Decoder {
         size_t instructionLen = 1;
         size_t prefixOffset = 0;
 
-        int opcodeByte = state.objectSource[startIdx];
-        int prefix, modrmByte, sibByte;
+        int startByte = state.objectSource[startIdx];
+        int opcodeByte, prefix, modrmByte, sibByte;
         prefix = modrmByte = sibByte = 0;
 
-        if (PREFIX_SET.find(opcodeByte) != PREFIX_SET.end()) {
-            prefix = opcodeByte;
+        // the general format of the x86-64 operations
+        // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
+
+        if (PREFIX_SET.find(startByte) != PREFIX_SET.end()) {
+            prefix = startByte;
             prefixOffset = 1;
             instructionLen += 1;
             opcodeByte = state.objectSource[startIdx + prefixOffset];
+        } else {
+            opcodeByte = startByte;
         }
 
-        auto operatorDict = OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
+        // (prefix, opcode) -> (register, operator)
+        std::unordered_map<int, std::string> operatorDict =
+            OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
 
-        // Grab the modrm
+        // Grab the modrm (1 byte)
         if ((startIdx + 1 + prefixOffset) < state.objectSource.size()) {
             modrmByte = state.objectSource[startIdx + 1 + prefixOffset];
         }
 
-        // Grab the sib
+        // Grab the sib (1 byte)
         if ((startIdx + 2 + prefixOffset) < state.objectSource.size()) {
             sibByte = state.objectSource[startIdx + 2 + prefixOffset];
         }
 
         std::string operator_;
-
         if (modrmByte != 0) {
             uint8_t reg = getRegVal(modrmByte);
             operator_ = (operatorDict.find(reg) != operatorDict.end())
@@ -57,6 +63,7 @@ struct X86Decoder {
 
         assemblyInstruction.push_back(operator_);
 
+        // (operator, opcode) -> (encoding, mnemonic, operands)
         std::tuple<OpEnc, std::string, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_pair(operator_, opcodeByte));
         OpEnc opEnc = std::get<0>(res);
@@ -69,11 +76,12 @@ struct X86Decoder {
             getInfo(opEnc).opEnc + "] remOps[" + remOps + "] Operands";
 
         std::vector<std::string> assemblyOperands;
-
         ModRMVal modRmVals;
         SibVal sibVals;
         ModRMTrans modRmTrans;
         SibTrans sibTrans;
+        
+        // Process the MODRM
         if (getInfo(opEnc).hasModrm) {
             if (modrmByte == 0) {
                 throw std::runtime_error(
@@ -164,13 +172,13 @@ struct X86Decoder {
         // if (nullptr in assemblyOperands) throw InvalidTranslationValue();
 
         std::string ao = "";
-        for (std::string &a :assemblyOperands) {
+        for (std::string& a : assemblyOperands) {
             ao += " " + a;
         }
         assemblyInstruction.push_back(ao);
-        
+
         std::string assemblyInstructionStr = "";
-        for (std::string &a : assemblyInstruction) {
+        for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
 
