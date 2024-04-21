@@ -1,9 +1,10 @@
-#include <cstdint>
+S#include <cstdint>
 #include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "constants.h"
 #include "modrm.h"
 #include "operatorTable.h"
 #include "state.h"
@@ -11,9 +12,9 @@
 struct X86Decoder {
     DecoderState state;
 
-    X86Decoder(DecoderState &decoderState) : state(decoderState) {}
+    X86Decoder(DecoderState& decoderState) : state(decoderState) {}
 
-    std::pair<Operand, uint64_t> decodeSingleInstruction() {
+    std::pair<std::string, uint64_t> decodeSingleInstruction() {
         std::vector<std::string> assemblyInstruction;
         size_t startIdx = state.getCurIdx();
 
@@ -62,12 +63,10 @@ struct X86Decoder {
         std::string remOps = std::get<1>(res);
         std::vector<Operand> operands = std::get<2>(res);
 
-
-        std::string log = "   Op[" + operator_ + ":" +
-                          std::to_string(opcodeByte) + "] Prefix[" +
-                          std::to_string(prefix) + "] Enc[" +
-                          getInfo(opEnc).opEnc + "] remOps[" +
-                          remOps + "] Operands";
+        std::string log =
+            "   Op[" + operator_ + ":" + std::to_string(opcodeByte) +
+            "] Prefix[" + std::to_string(prefix) + "] Enc[" +
+            getInfo(opEnc).opEnc + "] remOps[" + remOps + "] Operands";
 
         std::vector<std::string> assemblyOperands;
 
@@ -102,17 +101,19 @@ struct X86Decoder {
         std::vector<uint8_t> disp32;
 
         if ((getInfo(opEnc).hasModrm && modRmTrans.hasDisp8) ||
-            (getInfo(opEnc).hasModrm && modRmTrans.hasSib && sibTrans.hasDisp8) ||
-            (getInfo(opEnc).hasModrm && modRmTrans.hasSib && modRmVals.mod == 1 &&
-                sibVals.base == 5)) {
+            (getInfo(opEnc).hasModrm && modRmTrans.hasSib &&
+             sibTrans.hasDisp8) ||
+            (getInfo(opEnc).hasModrm && modRmTrans.hasSib &&
+             modRmVals.mod == 1 && sibVals.base == 5)) {
             disp8 = state.objectSource[startIdx + instructionLen];
             instructionLen += 1;
         }
 
         if ((getInfo(opEnc).hasModrm && modRmTrans.hasDisp32) ||
-            (getInfo(opEnc).hasModrm && modRmTrans.hasSib && sibTrans.hasDisp32) ||
-            (getInfo(opEnc).hasModrm && modRmTrans.hasSib && (modRmVals.mod == 0 || modRmVals == 2) &&
-                sibVals.base == 5)) {
+            (getInfo(opEnc).hasModrm && modRmTrans.hasSib &&
+             sibTrans.hasDisp32) ||
+            (getInfo(opEnc).hasModrm && modRmTrans.hasSib &&
+             (modRmVals.mod == 0 || modRmVals.mod == 2) && sibVals.base == 5)) {
             disp32 = {
                 state.objectSource.begin() + startIdx + instructionLen,
                 state.objectSource.begin() + startIdx + instructionLen + 4};
@@ -133,19 +134,20 @@ struct X86Decoder {
         for (Operand& operand : operands) {
             std::string decodedTranslatedValue;
 
-            if (operand == nullptr) break;
+            // if (operand == nullptr) break;
 
-            if (operand == OpUnit.eax) decodedTranslatedValue = "eax";
+            if (operand.type == OpUnit::eax) {
+                decodedTranslatedValue = "eax";
+            }
 
-            if (operand.name == OpUnit.rm.name ||
-                operand.name == OpUnit.reg.name) {
+            if (operand.type == OpUnit::rm || operand.type == OpUnit::reg) {
                 if (getInfo(opEnc).hasModrm)
                     decodedTranslatedValue = modRmTrans.get(operand.name);
                 else
-                    decodedTranslatedValue = REGISTER[remOps[0]];
+                    decodedTranslatedValue = REGISTERS[remOps[0]];
             }
 
-            if (operand.name == OpUnit.imm32.name) {
+            if (operand.type == OpUnit::imm32) {
                 imm = {
                     state.objectSource.begin() + startIdx + instructionLen,
                     state.objectSource.begin() + startIdx + instructionLen + 4};
@@ -161,9 +163,16 @@ struct X86Decoder {
 
         // if (nullptr in assemblyOperands) throw InvalidTranslationValue();
 
-        assemblyInstruction.push_back(std::join(", ", assemblyOperands));
-        std::string assemblyInstructionStr =
-            std::join(" ", assemblyInstruction);
+        std::string ao = "";
+        for (std::string &a :assemblyOperands) {
+            ao += " " + a;
+        }
+        assemblyInstruction.push_back(ao);
+        
+        std::string assemblyInstructionStr = "";
+        for (std::string &a : assemblyInstruction) {
+            assemblyInstructionStr += " " + a;
+        }
 
         uint64_t targetAddr =
             state.markDecoded(startIdx, instructionLen, assemblyInstructionStr);

@@ -18,7 +18,7 @@ const std::unordered_map<std::string, InstructionCategory>
 };
 
 // Define register names
-const std::vector<std::string> registers = {"eax", "ecx", "edx", "ebx",
+const std::vector<std::string> REGISTERS = {"eax", "ecx", "edx", "ebx",
                                             "esp", "ebp", "esi", "edi"};
 
 // Define addressing modes (no need for square brackets)
@@ -26,7 +26,7 @@ const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
                                                   "reg + disp32"};
 
 // Define scale factors
-const std::vector<std::string> scaleFactors = {
+const std::vector<std::string> SCALE = {
     "index + base", "index * 2 + base", "index * 4 + base", "index * 8 + base"};
 
 // Structure for operand unit types

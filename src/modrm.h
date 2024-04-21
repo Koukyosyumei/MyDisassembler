@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "constants.h"
 
 // Define ModRMVal struct
 struct ModRMVal {
