@@ -104,7 +104,7 @@ S #include<cstdint>
             instructionLen += 1;
         }
 
-        // parse displacement
+        // ------ parse displacement ------
         uint8_t disp8 = 0;
         std::vector<uint8_t> disp32;
 
@@ -129,14 +129,15 @@ S #include<cstdint>
             instructionLen += 4;
         }
 
-        // parse immediate
+        // ------ parse immediate ------
         std::vector<uint8_t> imm;
+        /*
         if (remOps.find("id") != std::string::npos) {
             imm = {state.objectSource.begin() + startIdx + instructionLen,
                    state.objectSource.begin() + startIdx + instructionLen + 4};
             std::reverse(imm.begin(), imm.end());
             instructionLen += 4;
-        }
+        }*/
 
         // Add all of the processed arguments to the assembly instruction
         for (Operand& operand : operands) {
