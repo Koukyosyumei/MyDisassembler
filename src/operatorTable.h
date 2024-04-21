@@ -27,11 +27,43 @@ enum class OpUnit {
 };
 
 enum class OpEnc {
-    I,   // Immediate
-    MI,  // Memory with immediate
-    MR,  // Memory with register
-    RM,  // Register with memory
+    I, 
+    D,
+    M,
+    O,
+    NP,
+    MI,
+    M1,
+    MR,
+    RM,
+    RMI,
+    OI
 };
+
+// Define a struct to store the mapping between OpEnc and hasModrm
+struct OpEncInfo {
+    std::string opEnc;
+    bool hasModrm;
+};
+
+// Static function to get OpEncInfo for OpEnc
+static OpEncInfo getInfo(OpEnc opEnc) {
+    static const std::unordered_map<OpEnc, OpEncInfo> opEncMap {
+        {OpEnc::I,   {"I",   false}},
+        {OpEnc::D,   {"D",   false}},
+        {OpEnc::M,   {"M",   true}},
+        {OpEnc::O,   {"O",   false}},
+        {OpEnc::NP,  {"NP",  false}},
+        {OpEnc::MI,  {"MI",  true}},
+        {OpEnc::M1,  {"M1",  true}},
+        {OpEnc::MR,  {"MR",  true}},
+        {OpEnc::RM,  {"RM",  true}},
+        {OpEnc::RMI, {"RMI", true}},
+        {OpEnc::OI,  {"OI",  false}}
+    };
+
+    return opEncMap.at(opEnc);
+}
 
 // Structure for operand information
 struct Operand {
