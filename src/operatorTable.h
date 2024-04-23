@@ -17,60 +17,6 @@ struct std::hash<std::pair<T, S>> {
     }
 };
 
-// Enums for operand units and encoding
-enum class OpUnit {
-    eax,
-    imm8,
-    imm32,
-    reg,
-    rm,
-};
-
-enum class OpEnc {
-    I, 
-    D,
-    M,
-    O,
-    NP,
-    MI,
-    M1,
-    MR,
-    RM,
-    RMI,
-    OI
-};
-
-// Define a struct to store the mapping between OpEnc and hasModrm
-struct OpEncInfo {
-    std::string opEnc;
-    bool hasModrm;
-};
-
-// Static function to get OpEncInfo for OpEnc
-static OpEncInfo getInfo(OpEnc opEnc) {
-    static const std::unordered_map<OpEnc, OpEncInfo> opEncMap {
-        {OpEnc::I,   {"I",   false}},
-        {OpEnc::D,   {"D",   false}},
-        {OpEnc::M,   {"M",   true}},
-        {OpEnc::O,   {"O",   false}},
-        {OpEnc::NP,  {"NP",  false}},
-        {OpEnc::MI,  {"MI",  true}},
-        {OpEnc::M1,  {"M1",  true}},
-        {OpEnc::MR,  {"MR",  true}},
-        {OpEnc::RM,  {"RM",  true}},
-        {OpEnc::RMI, {"RMI", true}},
-        {OpEnc::OI,  {"OI",  false}}
-    };
-
-    return opEncMap.at(opEnc);
-}
-
-// Structure for operand information
-struct Operand {
-    OpUnit type;
-    std::string value;  // Can be empty for registers (e.g., "eax")
-};
-
 inline int utf8ToDecimal(const std::string& utf8_str) {
     int result = 0;
     for (unsigned char c : utf8_str) {
@@ -108,7 +54,7 @@ initializeOPLOOKUP() {
 
     // (operator, opcode) -> (encoding, mnemonic, operands)
     std::unordered_map<std::pair<std::string, int>,
-                         std::tuple<OpEnc, std::string, std::vector<Operand>>>
+                         std::tuple<OpEnc, std::string, std::vector<OpUnit>>>
     operand_lookup;      
 
     /*
@@ -136,19 +82,8 @@ const std::unordered_map<std::pair<int, int>,
 
 // Lookup table for operand information
 const std::unordered_map<std::pair<std::string, int>,
-                         std::tuple<OpEnc, std::string, std::vector<Operand>>>
+                         std::tuple<OpEnc, std::string, std::vector<OpUnit>>>
     OPERAND_LOOKUP;  // (operator, opcode) -> (encoding, mnemonic, operands)
 
 // Supported operators set
 const std::unordered_set<std::string> SUPPORTED_OPERATORS;
-
-// Predefined prefixes and their associated instructions
-const std::unordered_map<int, std::vector<std::string>> PREFIX_OP = {
-    {0x0F, {"IMUL", "JZ", "JNZ"}},
-    {0xF0, {"LOCK"}},
-    {0xF2, {"REPNE", "REPNZ"}},
-    {0xF3, {"REP", "REPE", "REPZ"}},
-};
-
-const std::unordered_set<int> PREFIX_SET = {0x0F, 0xF0, 0xF2, 0xF3};
-

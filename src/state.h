@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -50,8 +51,10 @@ struct DecoderState {
         _hasDecoded = std::vector<bool>(contents.size(), false);
     }
 
-    void markDecoded(size_t startIdx, size_t byteLen,
+    uint64_t markDecoded(size_t startIdx, size_t byteLen,
                      std::string& instruction) {
+        
+        size_t labelAddr = std::string::npos;
         
         // skip if this has already been decoded
         std::unordered_set<bool> decodedPath;
@@ -59,7 +62,7 @@ struct DecoderState {
             decodedPath.insert(_hasDecoded[idx]);
         }
         if (decodedPath.count(true) > 0) {
-            return;
+            return labelAddr;
         }
 
         _currentIdx = startIdx + byteLen;
@@ -75,7 +78,6 @@ struct DecoderState {
             runningErrorIdx.clear();
         }
 
-        size_t labelAddr = std::string::npos;
         std::string operatorStr = instruction.substr(0, instruction.find(" "));
         transform(operatorStr.begin(), operatorStr.end(), operatorStr.begin(),
                   ::tolower);
@@ -123,7 +125,7 @@ struct DecoderState {
         instructionKeys.push_back(std::make_pair(startIdx, byteLen));
         instructionLens[startIdx] = byteLen;
 
-        // return labelAddr;
+        return labelAddr;
     }
 
     int getCurIdx() {
