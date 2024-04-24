@@ -71,11 +71,11 @@ struct X86Decoder {
         assemblyInstruction.push_back(operator_);
 
         // (operator, opcode) -> (encoding, mnemonic, operands)
-        std::tuple<OpEnc, std::string, std::vector<OpUnit>> res =
+        std::tuple<OpEnc, std::string, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_pair(operator_, opcodeByte));
         OpEnc opEnc = std::get<0>(res);
         std::string remOps = std::get<1>(res);
-        std::vector<OpUnit> operands = std::get<2>(res);
+        std::vector<Operand> operands = std::get<2>(res);
 
         std::string log =
             "   Op[" + operator_ + ":" + std::to_string(opcodeByte) +
@@ -147,18 +147,18 @@ struct X86Decoder {
         }*/
 
         // Add all of the processed arguments to the assembly instruction
-        for (OpUnit& operand : operands) {
+        for (Operand& operand : operands) {
             std::string decodedTranslatedValue;
 
             // if (operand == nullptr) break;
 
-            if (operand == OpUnit::eax) {
+            if (operand == Operand::eax) {
                 decodedTranslatedValue = "eax";
             }
 
-            if (operand == OpUnit::rm || operand == OpUnit::reg) {
+            if (operand == Operand::rm || operand == Operand::reg) {
                 if (hasModrm(opEnc))
-                    if (operand == OpUnit::rm)
+                    if (operand == Operand::rm)
                         decodedTranslatedValue = modRmTrans.rm;
                     else
                         decodedTranslatedValue = modRmTrans.reg;
@@ -166,7 +166,7 @@ struct X86Decoder {
                     decodedTranslatedValue = REGISTERS[remOps[0]];
             }
 
-            else if (operand == OpUnit::imm32) {
+            else if (operand == Operand::imm32) {
                 imm = {
                     state.objectSource.begin() + startIdx + instructionLen,
                     state.objectSource.begin() + startIdx + instructionLen + 4};

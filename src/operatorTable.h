@@ -5,19 +5,10 @@
 #include <vector>
 
 #include "constants.h"
+#include "utils.h"
 
-template <class T>
-size_t HashCombine(const size_t seed, const T& v) {
-    return seed ^ (std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
-}
-template <class T, class S>
-struct std::hash<std::pair<T, S>> {
-    size_t operator()(const std::pair<T, S>& keyval) const noexcept {
-        return HashCombine(std::hash<T>()(keyval.first), keyval.second);
-    }
-};
-
-inline int utf8ToDecimal(const std::string& utf8_str) {
+// utf8 to decimal
+inline int u2d(const std::string& utf8_str) {
     int result = 0;
     for (unsigned char c : utf8_str) {
         result = (result << 8) + c;
@@ -25,65 +16,30 @@ inline int utf8ToDecimal(const std::string& utf8_str) {
     return result;
 }
 
-// Function to populate OP_LOOKUP based on operator, opcode, and register (if
-// applicable)
-inline void updateOPLOOKUP(
-    std::unordered_map<std::pair<int, int>,
-                       std::unordered_map<int, std::string>>& op_lookup,
-    const std::string& operator_, int prefix, int opcode, int reg) {
-    std::pair<int, int> key = {prefix, opcode};
-
-    if (op_lookup.count(key) == 0) {
-        op_lookup[key] = {};
-    }
-
-    if (reg != -1) {
-        op_lookup[key][reg] = operator_;
-    }
-}
-
-// inline void updateOPERANDLOOKUP()
-
-inline std::unordered_map<std::pair<int, int>,
-                          std::unordered_map<int, std::string>>
-initializeOPLOOKUP() {
-    // (prefix, opcode) -> (register, operator)
-    std::unordered_map<std::pair<int, int>,
-                       std::unordered_map<int, std::string>>
-        op_lookup;
-
-    // (operator, opcode) -> (encoding, mnemonic, operands)
-    std::unordered_map<std::pair<std::string, int>,
-                         std::tuple<OpEnc, std::string, std::vector<OpUnit>>>
-    operand_lookup;      
-
-    /*
-    # ADD
-        Opcode              Instruction         Op/En   64-Bit  Compat  Description
-        05 id               ADD EAX, imm32      I       Valid   Valid   Add imm32 to EAX.
-        81 /0 id            ADD r/m32, imm32    MI      Valid   Valid   Add imm32 to r/m32.
-        83 /0 ib            ADD r/m32, imm8     MI      Valid   Valid   Add sign-extended imm8 to r/m32.
-        01 /r               ADD r/m32, r32      MR      Valid   Valid   Add r32 to r/m32.
-        03 /r               ADD r32, r/m32      RM      Valid   Valid   Add r/m32 to r32.
-    */
-    updateOPLOOKUP(op_lookup, "ADD", -1, utf8ToDecimal("\x05"), -1);
-    updateOPLOOKUP(op_lookup, "ADD", -1, utf8ToDecimal("\x81"), utf8ToDecimal("\x00"));
-    updateOPLOOKUP(op_lookup, "ADD", -1, utf8ToDecimal("\x83"), utf8ToDecimal("\x00"));
-    updateOPLOOKUP(op_lookup, "ADD", -1, utf8ToDecimal("\x01"), -1);
-    updateOPLOOKUP(op_lookup, "ADD", -1, utf8ToDecimal("\x03"), -1);
-    return op_lookup;
-}
 
 // Global lookup table for instructions
-// (prefix, opcode) -> (register, operator)
-const std::unordered_map<std::pair<int, int>,
-                         std::unordered_map<int, std::string>>
-    OP_LOOKUP = initializeOPLOOKUP();
+// (prefix, opcode) -> (register -> operator)
+const std::unordered_map<std::pair<Prefix, int>,
+                         std::unordered_map<int, Mnemonic>>
+    OP_LOOKUP = {
+        {{Prefix::NONE, u2d("\x05")}, {{-1, Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x81")}, {{u2d("\x00"), Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x83")}, {{u2d("\x00"), Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x01")}, {{-1, Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x03")}, {{-1, Mnemonic::ADD}}}
+    };
 
 // Lookup table for operand information
-const std::unordered_map<std::pair<std::string, int>,
-                         std::tuple<OpEnc, std::string, std::vector<OpUnit>>>
-    OPERAND_LOOKUP;  // (operator, opcode) -> (encoding, mnemonic, operands)
+// (prefix, operator, opcode) -> (encoding, return value, operands)
+const std::unordered_map<std::tuple<Prefix, Mnemonic, int>,
+                         std::tuple<OpEnc, std::string, std::vector<Operand>>>
+    OPERAND_LOOKUP = {
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x05")}, {OpEnc::I, "id", {Operand::eax, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x81")}, {OpEnc::MI, "id", {Operand::rm, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x83")}, {OpEnc::MI, "ib", {Operand::rm, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x01")}, {OpEnc::MR, "/r", {Operand::rm, Operand::reg}}},
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x03")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}}
+    };  
 
 // Supported operators set
 const std::unordered_set<std::string> SUPPORTED_OPERATORS;

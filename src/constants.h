@@ -4,8 +4,109 @@
 #include <unordered_set>
 #include <vector>
 
-// Enums for instruction categories
 enum class InstructionCategory { CALL, FUNC_END, JUMP, JCC };
+
+enum class Operand { one, imm8, imm16, imm32, reg, rm, eax, moff };
+
+enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
+
+enum class Prefix { NONE, P66, REXW, REX };
+
+enum class Mnemonic {
+    MOV,
+    LEA,
+    ADD,
+    ADC,
+    SUB,
+    SBB,
+    MUL,
+    IMUL,
+    DIV,
+    IDIV,
+    INC,
+    DEC,
+    AND,
+    OR,
+    XOR,
+    NOT,
+    NEG,
+    CMP,
+    TEST,
+    SAL,
+    SHL,
+    SAR,
+    SHR,
+    RCL,
+    RCR,
+    ROL,
+    ROR,
+    JMP,
+    LOOP,
+    JZ,
+    JNZ,
+    JA,
+    JAE,
+    JB,
+    JBE,
+    JG,
+    JGE,
+    JL,
+    JLE,
+    JP,
+    JNP,
+    JO,
+    JNO,
+    JS,
+    JC,
+    JCXZ,
+    JECXZ,
+    CALL,
+    RET,
+    PUSH,
+    POP,
+    MOVSB,
+    MOVSW,
+    MOVSD,
+    REP,
+    REPE,
+    REPNE,
+    CLD,
+    STD,
+    LODSB,
+    LODSW,
+    LODSD,
+    STOSB,
+    STOSW,
+    STOSD,
+    SCASB,
+    SCASW,
+    SCASD,
+    CMPSB,
+    CMPSW,
+    CMPSD,
+    IN,
+    OUT,
+    INSB,
+    INSW,
+    INSD,
+    OUTSB,
+    OUTSW,
+    OUTSD,
+    CBW,
+    CWD,
+    CWDE,
+    CDQ,
+    INT21,
+    LOCK,
+    ENTER,
+    LEAVE,
+    NOP,
+    UD2,
+    CPUID,
+    XCHG,
+    STC,
+    CLC
+};
 
 const std::unordered_map<std::string, InstructionCategory>
     instructionCategories = {
@@ -30,33 +131,28 @@ const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
 const std::vector<std::string> SCALE = {"index + base", "index * 2 + base",
                                         "index * 4 + base", "index * 8 + base"};
 
-// Enums for operand units and encoding
-enum class OpUnit { one, imm8, imm16, imm32, reg, rm, eax, moff };
-
-inline std::string to_string(OpUnit opu) {
+inline std::string to_string(Operand opu) {
     switch (opu) {
-        case OpUnit::one:
+        case Operand::one:
             return "one";
-        case OpUnit::imm8:
+        case Operand::imm8:
             return "imm8";
-        case OpUnit::imm16:
+        case Operand::imm16:
             return "imm16";
-        case OpUnit::imm32:
+        case Operand::imm32:
             return "imm32";
-        case OpUnit::reg:
+        case Operand::reg:
             return "reg";
-        case OpUnit::rm:
+        case Operand::rm:
             return "rm";
-        case OpUnit::eax:
+        case Operand::eax:
             return "eax";
-        case OpUnit::moff:
+        case Operand::moff:
             return "moff";
         default:
             return "unknown";
     }
 }
-
-enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
 inline bool hasModrm(OpEnc openc) {
     switch (openc) {
