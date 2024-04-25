@@ -1,89 +1,98 @@
 #pragma once
 #include <iostream>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "constants.h"
+#include "utils.h"
 
-// Define ModRMVal struct
-struct ModRMVal {
-    unsigned char mod;
-    unsigned char reg;
-    unsigned char rm;
-};
-
-// Define ModRMTrans struct
-struct ModRMTrans {
-    unsigned char reg;
-    unsigned char rm;
-    bool hasDisp8;
-    bool hasDisp32;
-    bool hasSib;
-};
-
-// Define SibVal struct
-struct SibVal {
-    unsigned char scale;
-    unsigned char index;
-    unsigned char base;
-};
-
-// Define SibTrans struct
-struct SibTrans {
-    bool scaledIndexBase;
-    bool hasDisp8;
-    bool hasDisp32;
-};
-
-// Define MODRM_PARSE_LOOKUP using a map
-const std::unordered_map<unsigned char, ModRMVal> MODRM_PARSE_LOOKUP;
-
-// Define MODRM_TRANSLATION_LOOKUP using a map
-const std::unordered_map<unsigned char, ModRMTrans> MODRM_TRANSLATION_LOOKUP;
-
-// Define SIB_PARSE_LOOKUP using a map
-const std::unordered_map<unsigned char, SibVal> SIB_PARSE_LOOKUP;
-
-// Define SIB_TRANSLATION_LOOKUP using a map
-const std::unordered_map<unsigned char, SibTrans> SIB_TRANSLATION_LOOKUP;
-
-// Function to get ModRMVal from modrm
-inline ModRMVal _getModrmValues(unsigned char modrm) {
-    return MODRM_PARSE_LOOKUP.at(modrm);
+inline unsigned char assembleModRmByte(unsigned char modByte,
+                                       unsigned char regByte,
+                                       unsigned char rmByte) {
+    return ((modByte << 6) + (regByte << 3) + rmByte);
 }
 
-// Function to get ModRMTrans from modrm
-inline ModRMTrans _getModRmTranslation(unsigned char modrm) {
-    // Implement your logic here
-}
-
-// Function to get SibVal from sib
-inline SibVal _getSibValues(unsigned char sib) {
-    return SIB_PARSE_LOOKUP.at(sib);
-}
-
-// Function to get SibTrans from sib
-inline SibTrans _getSibTranslation(unsigned char sib) {
-    // Implement your logic here
-}
-
-// Function to translate modrmByte
-inline std::tuple<ModRMVal, ModRMTrans> translateModRm(unsigned char modrmByte) {
-    return std::make_tuple(_getModrmValues(modrmByte), _getModRmTranslation(modrmByte));
-}
-
-// Function to translate sibByte
-inline std::tuple<SibVal, SibTrans> translateSib(unsigned char sibByte) {
-    return std::make_tuple(_getSibValues(sibByte), _getSibTranslation(sibByte));
-}
-
-inline unsigned char assembleModRmByte(unsigned char mod, unsigned char reg, unsigned char rm) {
-    return ((mod << 6) + (reg << 3) + rm);
-}
-
-inline unsigned char assembleSibByte(unsigned char scale, unsigned char index, unsigned char base) {
-    return ((scale << 6) + (index << 3) + base);
+inline unsigned char assembleSibByte(unsigned char scaleByte,
+                                     unsigned char indexByte,
+                                     unsigned char baseByte) {
+    return ((scaleByte << 6) + (indexByte << 3) + baseByte);
 }
 
 inline unsigned char getRegVal(unsigned char modrmByte) {
     return (modrmByte >> 3) & 0x7;
 }
+
+const std::unordered_map<int, std::string> id2register = {
+    {0, "RAX"},  {1, "RCX"},  {2, "RDX"},  {3, "RBX"}, {4, "RSP"},  {5, "RBP"},
+    {6, "RSI"},  {7, "RDI"},  {8, "R8"},   {9, "R9"},  {10, "R10"}, {11, "R11"},
+    {12, "R12"}, {13, "R13"}, {14, "R14"}, {15, "R15"}};
+
+struct ModRM {
+    unsigned char modByte;
+    unsigned char regByte;
+    unsigned char rmByte;
+
+    std::string addressingMode;
+    bool hasDisp8;
+    bool hasDisp32;
+    bool hasSib;
+
+    ModRM(unsigned char modrmByte, bool rexb = false) {
+        rmByte = modrmByte & 0x7;
+        regByte = (modrmByte >> 3) & 0x7;
+        modByte = (modrmByte >> 6) & 0x3;
+
+        std::string baseReg;
+        if (modByte < 3 && rmByte == 4) {
+            baseReg = "SIB";
+        } else {
+            baseReg = id2register.at(regByte + (rexb ? 0 : 8));
+        }
+
+        switch (modByte) {
+            case 0x00: {
+                addressingMode = "[" + baseReg + "]";
+                hasDisp8 = false;
+                hasDisp32 = false;
+            }
+            case 0x01: {
+                addressingMode = "[" + baseReg + " + disp8]";
+                hasDisp8 = true;
+                hasDisp32 = false;
+            }
+            case 0x10: {
+                addressingMode = "[" + baseReg + " + disp32]";
+                hasDisp8 = false;
+                hasDisp32 = true;
+            }
+            case 0x11: {
+                addressingMode = baseReg;
+                hasDisp8 = false;
+                hasDisp32 = false;
+            }
+        }
+
+        if (modByte == 0 && rmByte == 5) {
+            addressingMode = "[RIP + disp32]";
+            hasDisp8 = false;
+            hasDisp32 = true;
+        }
+    }
+};
+
+struct SIB {
+    unsigned char scaleByte;
+    unsigned char indexByte;
+    unsigned char baseByte;
+
+    std::string address;
+    bool hasDisp8;
+    bool hasDisp32;
+
+    SIB(unsigned char sibByte, bool rexb = false, unsigned char modByte = 0) {
+        scaleByte = (sibByte >> 6) & 0x3;
+        indexByte = (sibByte >> 3) & 0x7;
+        baseByte = sibByte & 0x7;
+    }
+};
+

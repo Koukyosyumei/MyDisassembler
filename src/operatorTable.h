@@ -7,16 +7,6 @@
 #include "constants.h"
 #include "utils.h"
 
-// utf8 to decimal
-inline int u2d(const std::string& utf8_str) {
-    int result = 0;
-    for (unsigned char c : utf8_str) {
-        result = (result << 8) + c;
-    }
-    return result;
-}
-
-
 // Global lookup table for instructions
 // (prefix, opcode) -> (register -> operator)
 const std::unordered_map<std::pair<Prefix, int>,
@@ -34,11 +24,31 @@ const std::unordered_map<std::pair<Prefix, int>,
 const std::unordered_map<std::tuple<Prefix, Mnemonic, int>,
                          std::tuple<OpEnc, std::string, std::vector<Operand>>>
     OPERAND_LOOKUP = {
+        // ADD
         {{Prefix::NONE, Mnemonic::ADD, u2d("\x05")}, {OpEnc::I, "id", {Operand::eax, Operand::imm32}}},
+        {{Prefix::REXW, Mnemonic::ADD, u2d("\x05")}, {OpEnc::I, "id", {Operand::rax, Operand::imm32}}},
         {{Prefix::NONE, Mnemonic::ADD, u2d("\x81")}, {OpEnc::MI, "id", {Operand::rm, Operand::imm32}}},
         {{Prefix::NONE, Mnemonic::ADD, u2d("\x83")}, {OpEnc::MI, "ib", {Operand::rm, Operand::imm8}}},
         {{Prefix::NONE, Mnemonic::ADD, u2d("\x01")}, {OpEnc::MR, "/r", {Operand::rm, Operand::reg}}},
-        {{Prefix::NONE, Mnemonic::ADD, u2d("\x03")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}}
+        {{Prefix::NONE, Mnemonic::ADD, u2d("\x03")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}},
+        // AND
+        {{Prefix::NONE, Mnemonic::AND, u2d("\x25")}, {OpEnc::I, "id", {Operand::eax, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::AND, u2d("\x81")}, {OpEnc::MI, "id", {Operand::rm, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::AND, u2d("\x83")}, {OpEnc::MI, "ib", {Operand::rm, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::AND, u2d("\x21")}, {OpEnc::MR, "/r", {Operand::rm, Operand::reg}}},
+        {{Prefix::NONE, Mnemonic::AND, u2d("\x23")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}},
+        // CMP
+        {{Prefix::NONE, Mnemonic::CMP, u2d("\x3D")}, {OpEnc::I, "id", {Operand::eax, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::CMP, u2d("\x81")}, {OpEnc::MI, "id", {Operand::rm, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::CMP, u2d("\x83")}, {OpEnc::MI, "ib", {Operand::rm, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::CMP, u2d("\x39")}, {OpEnc::MR, "/r", {Operand::rm, Operand::reg}}},
+        {{Prefix::NONE, Mnemonic::CMP, u2d("\x3B")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}},
+        // OR
+        {{Prefix::NONE, Mnemonic::OR, u2d("\x0D")}, {OpEnc::I, "id", {Operand::eax, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::OR, u2d("\x81")}, {OpEnc::MI, "id", {Operand::rm, Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::OR, u2d("\x83")}, {OpEnc::MI, "ib", {Operand::rm, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::OR, u2d("\x09")}, {OpEnc::MR, "/r", {Operand::rm, Operand::reg}}},
+        {{Prefix::NONE, Mnemonic::OR, u2d("\x0B")}, {OpEnc::RM, ".r", {Operand::reg, Operand::rm}}},
     };  
 
 // Supported operators set

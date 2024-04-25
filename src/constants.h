@@ -6,7 +6,7 @@
 
 enum class InstructionCategory { CALL, FUNC_END, JUMP, JCC };
 
-enum class Operand { one, imm8, imm16, imm32, reg, rm, eax, moff };
+enum class Operand { one, imm8, imm16, imm32, reg, rm, eax, rax, moff };
 
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
@@ -106,6 +106,27 @@ enum class Mnemonic {
     XCHG,
     STC,
     CLC
+};
+
+enum class Registers {
+    RAX,
+    RCX,
+    RDX,
+    RBX,
+    RSP,
+    RBP,
+    RSI,
+    RDI,
+    RIP,
+    R8,
+    R9,
+    R10,
+    R11,
+    R12,
+    R13,
+    R14,
+    R15,
+    SIB
 };
 
 const std::unordered_map<std::string, InstructionCategory>

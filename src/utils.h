@@ -1,6 +1,7 @@
 #pragma once
 #include <tuple>
 #include <unordered_map>
+#include <string>
 
 namespace std {
 namespace {
@@ -49,3 +50,12 @@ struct hash<std::tuple<TT...>> {
     }
 };
 }  // namespace std
+
+inline int u2d(const std::string& utf8_str) {
+    int result = 0;
+    for (unsigned char c : utf8_str) {
+        result = (result << 8) + c;
+    }
+    return result;
+}
+
