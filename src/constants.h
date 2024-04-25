@@ -10,7 +10,12 @@ enum class Operand { one, imm8, imm16, imm32, reg, rm, eax, rax, moff };
 
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
-enum class Prefix { NONE, P66, REXW, REX };
+enum class Prefix {
+    NONE,  // without prefix
+    P66,   // change the default operand size
+    REXW,  // use R8-R15 registers
+    REX    // use 64 bit registers
+};
 
 enum class Mnemonic {
     MOV,
@@ -129,6 +134,11 @@ enum class Registers {
     SIB
 };
 
+const std::unordered_map<int, std::string> id2register = {
+    {0, "RAX"},  {1, "RCX"},  {2, "RDX"},  {3, "RBX"}, {4, "RSP"},  {5, "RBP"},
+    {6, "RSI"},  {7, "RDI"},  {8, "R8"},   {9, "R9"},  {10, "R10"}, {11, "R11"},
+    {12, "R12"}, {13, "R13"}, {14, "R14"}, {15, "R15"}};
+
 const std::unordered_map<std::string, InstructionCategory>
     instructionCategories = {
         {"CALL", InstructionCategory::CALL},
@@ -230,11 +240,13 @@ inline std::string to_string(OpEnc openc) {
 }
 
 // Predefined prefixes and their associated instructions
-const std::unordered_map<int, std::vector<std::string>> PREFIX_OP = {
-    {0x0F, {"IMUL", "JZ", "JNZ"}},
-    {0xF0, {"LOCK"}},
-    {0xF2, {"REPNE", "REPNZ"}},
-    {0xF3, {"REP", "REPE", "REPZ"}},
+const std::unordered_map<int, std::vector<std::string>>
+    BYTE2PREFIX_INSTRUCTIONS = {
+        {0x0F, {"IMUL", "JZ", "JNZ"}},
+        {0xF0, {"LOCK"}},
+        {0xF2, {"REPNE", "REPNZ"}},
+        {0xF3, {"REP", "REPE", "REPZ"}},
 };
 
-const std::unordered_set<int> PREFIX_SET = {0x0F, 0xF0, 0xF2, 0xF3};
+const std::unordered_set<int> PREFIX_INSTRUCTIONS_BYTES_SET = {0x0F, 0xF0, 0xF2,
+                                                               0xF3};

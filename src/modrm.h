@@ -22,10 +22,20 @@ inline unsigned char getRegVal(unsigned char modrmByte) {
     return (modrmByte >> 3) & 0x7;
 }
 
-const std::unordered_map<int, std::string> id2register = {
-    {0, "RAX"},  {1, "RCX"},  {2, "RDX"},  {3, "RBX"}, {4, "RSP"},  {5, "RBP"},
-    {6, "RSI"},  {7, "RDI"},  {8, "R8"},   {9, "R9"},  {10, "R10"}, {11, "R11"},
-    {12, "R12"}, {13, "R13"}, {14, "R14"}, {15, "R15"}};
+struct REX {
+    bool rexB;
+    bool rexX;
+    bool rexR;
+    bool rexW;
+
+    REX() {}
+    REX(unsigned char rexByte) {
+        rexB = (rexByte & 0x1) == 0x1;
+        rexX = (rexByte & 0x2) == 0x2;
+        rexR = (rexByte & 0x4) == 0x4;
+        rexW = (rexByte & 0x8) == 0x8;
+    }
+};
 
 struct ModRM {
     unsigned char modByte;
@@ -33,20 +43,23 @@ struct ModRM {
     unsigned char rmByte;
 
     std::string addressingMode;
+    std::string reg;
+
     bool hasDisp8;
     bool hasDisp32;
     bool hasSib;
 
+    ModRM() {}
     ModRM(unsigned char modrmByte, bool rexb = false) {
         rmByte = modrmByte & 0x7;
         regByte = (modrmByte >> 3) & 0x7;
         modByte = (modrmByte >> 6) & 0x3;
 
-        std::string baseReg;
+        reg = id2register.at(regByte + (rexb ? 0 : 8));
+
+        std::string baseReg = reg;
         if (modByte < 3 && rmByte == 4) {
             baseReg = "SIB";
-        } else {
-            baseReg = id2register.at(regByte + (rexb ? 0 : 8));
         }
 
         switch (modByte) {
@@ -89,6 +102,7 @@ struct SIB {
     bool hasDisp8;
     bool hasDisp32;
 
+    SIB() {}
     SIB(unsigned char sibByte, bool rexb = false, unsigned char modByte = 0) {
         scaleByte = (sibByte >> 6) & 0x3;
         indexByte = (sibByte >> 3) & 0x7;

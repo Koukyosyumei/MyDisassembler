@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -14,139 +15,160 @@
 
 struct X86Decoder {
     DecoderState state;
+    bool hasREX;
+    bool hasModRM;
+    bool hasSIB;
 
-    X86Decoder(DecoderState& decoderState) : state(decoderState) {}
+    size_t curIdx;
+    size_t instructionLen;
+    size_t prefixOffset;
 
-    std::pair<std::string, uint64_t> decodeSingleInstruction() {
-        std::vector<std::string> assemblyInstruction;
-        size_t startIdx = state.getCurIdx();
+    int prefixInstructionByte, opcodeByte, modrmByte, sibByte;
 
-        size_t instructionLen = 1;
-        size_t prefixOffset = 0;
+    Mnemonic mnemonic;
+    Prefix prefix;
+    REX rex;
+    ModRM modrm;
+    SIB sib;
 
-        int startByte = state.objectSource[startIdx];
-        int opcodeByte, prefix, modrmByte, sibByte;
-        prefix = modrmByte = sibByte = 0;
+    OpEnc opEnc;
+    std::string remOps;
+    std::vector<Operand> operands;
 
-        // the general format of the x86-64 operations
-        // current implementation ignores `REX prefix`
-        // |prefix|(REX prefix)|opecode|ModR/M|SIB|address offset|immediate|
+    uint8_t disp8 = 0;
+    std::vector<uint8_t> disp32;
 
-        if (PREFIX_SET.find(startByte) != PREFIX_SET.end()) {
+    std::vector<Mnemonic> assemblyInstruction;
+    std::vector<std::string> assemblyOperands;
+
+    X86Decoder(DecoderState& decoderState)
+        : state(decoderState), hasREX(false), hasModRM(false), hasSIB(false) {}
+
+    void parsePrefixInstructions() {
+        int startByte = state.objectSource[curIdx];
+        if (PREFIX_INSTRUCTIONS_BYTES_SET.find(startByte) !=
+            PREFIX_INSTRUCTIONS_BYTES_SET.end()) {
             // eat prefix
-            prefix = startByte;
+            prefixInstructionByte = startByte;
             prefixOffset = 1;
             instructionLen += 1;
-            // eat opecode (assume that opecode is 1 byte)
-            opcodeByte = state.objectSource[startIdx + prefixOffset];
-        } else {
-            // eat opecode
-            opcodeByte = startByte;
+            curIdx += 1;
         }
+    }
 
-        // (prefix, opcode) -> (register, operator)
-        std::unordered_map<int, std::string> operatorDict =
+    void parseREX() {
+        // The format of REX prefix is 0100|W|R|X|B
+        if ((state.objectSource[curIdx] >> 4) == 4) {
+            hasREX = true;
+            rex = REX(state.objectSource[curIdx]);
+            instructionLen += 1;
+            curIdx += 1;
+        }
+    }
+
+    void parseOpecode() {
+        // eat opecode
+        opcodeByte = state.objectSource[curIdx];
+        instructionLen += 1;
+        curIdx += 1;
+
+        // (prefix, opcode) -> (reg, mnemonic)
+        std::unordered_map<int, Mnemonic> reg2mnem =
             OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
 
-        // eat the modrm (1 byte)
-        if ((startIdx + 1 + prefixOffset) < state.objectSource.size()) {
-            modrmByte = state.objectSource[startIdx + 1 + prefixOffset];
+        // We sometimes need reg of modrm to determine the opecode
+        // e.g. 83 /4 -> AND
+        //      83 /1 -> OR
+        if (curIdx < state.objectSource.size()) {
+            modrmByte = state.objectSource[curIdx];
         }
 
-        // eat the sib (1 byte)
-        if ((startIdx + 2 + prefixOffset) < state.objectSource.size()) {
-            sibByte = state.objectSource[startIdx + 2 + prefixOffset];
-        }
-
-        std::string operator_;
         if (modrmByte != 0) {
             uint8_t reg = getRegVal(modrmByte);
-            operator_ = (operatorDict.find(reg) != operatorDict.end())
-                            ? operatorDict[reg]
-                            : operatorDict[0];
+            mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
+                                                              : reg2mnem[-1];
         } else {
-            operator_ = operatorDict[0];
+            mnemonic = reg2mnem[-1];
         }
 
-        assemblyInstruction.push_back(operator_);
-
-        // (operator, opcode) -> (encoding, mnemonic, operands)
+        assemblyInstruction.push_back(mnemonic);
         std::tuple<OpEnc, std::string, std::vector<Operand>> res =
-            OPERAND_LOOKUP.at(std::make_pair(operator_, opcodeByte));
-        OpEnc opEnc = std::get<0>(res);
-        std::string remOps = std::get<1>(res);
-        std::vector<Operand> operands = std::get<2>(res);
+            OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
+        opEnc = std::get<0>(res);
+        remOps = std::get<1>(res);
+        operands = std::get<2>(res);
+    }
 
-        std::string log =
-            "   Op[" + operator_ + ":" + std::to_string(opcodeByte) +
-            "] Prefix[" + std::to_string(prefix) + "] Enc[" +
-            to_string(opEnc) + "] remOps[" + remOps + "] Operands";
-
-        std::vector<std::string> assemblyOperands;
-        ModRMVal modRmVals;
-        SibVal sibVals;
-        ModRMTrans modRmTrans;
-        SibTrans sibTrans;
-
-        // Process the MODRM
+    void parseModRM() {
         if (hasModrm(opEnc)) {
             if (modrmByte == 0) {
                 throw std::runtime_error(
                     "Expected ModRM byte but there aren't any bytes left.");
             }
             instructionLen += 1;
-            std::tuple<ModRMVal, ModRMTrans> res = translateModRm(modrmByte);
-            modRmVals = std::get<0>(res);
-            modRmTrans = std::get<1>(res);
+            curIdx += 1;
+            modrm = ModRM(modrmByte);
         }
+    }
 
-        if (hasModrm(opEnc) && modRmTrans.hasSib) {
+    void parseSIB() {
+        if (hasModrm(opEnc) && modrm.hasSib) {
+            // eat the sib (1 byte)
+            if (curIdx < state.objectSource.size()) {
+                sibByte = state.objectSource[curIdx];
+            }
             if (sibByte == 0) {
                 throw std::runtime_error(
                     "Expected SIB byte but there aren't any bytes left.");
             }
-            std::tuple<SibVal, SibTrans> res = translateSib(sibByte);
-            sibVals = std::get<0>(res);
-            sibTrans = std::get<1>(res);
+            sib = SIB(sibByte);
             instructionLen += 1;
+            curIdx += 1;
+        }
+    }
+
+    void parseAddressOffset() {
+        if ((hasModrm(opEnc) && modrm.hasDisp8) ||
+            (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
+            (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
+             sib.baseByte == 5)) {
+            disp8 = state.objectSource[curIdx];
+            instructionLen += 1;
+            curIdx += 1;
         }
 
-        // ------ parse displacement ------
-        uint8_t disp8 = 0;
-        std::vector<uint8_t> disp32;
-
-        if ((hasModrm(opEnc) && modRmTrans.hasDisp8) ||
-            (hasModrm(opEnc) && modRmTrans.hasSib &&
-             sibTrans.hasDisp8) ||
-            (hasModrm(opEnc) && modRmTrans.hasSib &&
-             modRmVals.mod == 1 && sibVals.base == 5)) {
-            disp8 = state.objectSource[startIdx + instructionLen];
-            instructionLen += 1;
-        }
-
-        if ((hasModrm(opEnc) && modRmTrans.hasDisp32) ||
-            (hasModrm(opEnc) && modRmTrans.hasSib &&
-             sibTrans.hasDisp32) ||
-            (hasModrm(opEnc) && modRmTrans.hasSib &&
-             (modRmVals.mod == 0 || modRmVals.mod == 2) && sibVals.base == 5)) {
-            disp32 = std::vector<uint8_t>(
-                state.objectSource.begin() + startIdx + instructionLen,
-                state.objectSource.begin() + startIdx + instructionLen + 4);
+        if ((hasModrm(opEnc) && modrm.hasDisp32) ||
+            (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp32) ||
+            (hasModrm(opEnc) && modrm.hasSib &&
+             (modrm.modByte == 0 || modrm.modByte == 2) && sib.baseByte == 5)) {
+            disp32 =
+                std::vector<uint8_t>(state.objectSource.begin() + curIdx,
+                                     state.objectSource.begin() + curIdx + 4);
             std::reverse(disp32.begin(), disp32.end());
             instructionLen += 4;
+            curIdx += 4;
         }
+    }
 
-        // ------ parse immediate ------
+    std::pair<std::string, uint64_t> decodeSingleInstruction() {
+        // ############### Initialize ##############################
+        curIdx = state.getCurIdx();
+        instructionLen = 1;
+        prefixOffset = 0;
+        opcodeByte = modrmByte = sibByte = 0;
+
+        // the general format of the x86-64 operations
+        // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
+
+        parsePrefixInstructions();
+        parseREX();
+        parseOpecode();
+        parseModRM();
+        parseSIB();
+        parseAddressOffset();
+
+        // ############### Process Operands ################
         std::vector<uint8_t> imm;
-        /*
-        if (remOps.find("id") != std::string::npos) {
-            imm = {state.objectSource.begin() + startIdx + instructionLen,
-                   state.objectSource.begin() + startIdx + instructionLen + 4};
-            std::reverse(imm.begin(), imm.end());
-            instructionLen += 4;
-        }*/
-
-        // Add all of the processed arguments to the assembly instruction
         for (Operand& operand : operands) {
             std::string decodedTranslatedValue;
 
@@ -156,22 +178,24 @@ struct X86Decoder {
                 decodedTranslatedValue = "eax";
             }
 
-            if (operand == Operand::rm || operand == Operand::reg) {
+            else if (operand == Operand::rm || operand == Operand::reg) {
                 if (hasModrm(opEnc))
                     if (operand == Operand::rm)
-                        decodedTranslatedValue = modRmTrans.rm;
+                        decodedTranslatedValue = modrm.addressingMode;
                     else
-                        decodedTranslatedValue = modRmTrans.reg;
+                        decodedTranslatedValue = modrm.reg;
                 else
-                    decodedTranslatedValue = REGISTERS[remOps[0]];
+                    decodedTranslatedValue =
+                        id2register.at(int(remOps[0] - '0'));
             }
 
             else if (operand == Operand::imm32) {
-                imm = {
-                    state.objectSource.begin() + startIdx + instructionLen,
-                    state.objectSource.begin() + startIdx + instructionLen + 4};
+                imm = std::vector<uint8_t>(
+                    state.objectSource.begin() + curIdx,
+                    state.objectSource.begin() + curIdx + 4);
                 std::reverse(imm.begin(), imm.end());
                 instructionLen += 4;
+                curIdx += 4;
 
                 std::stringstream ss;
                 ss << "0x";
@@ -179,7 +203,6 @@ struct X86Decoder {
                     ss << std::hex << std::setw(2) << std::setfill('0')
                        << static_cast<int>(x);
                 }
-
                 decodedTranslatedValue = "0x" + ss.str();
             }
 

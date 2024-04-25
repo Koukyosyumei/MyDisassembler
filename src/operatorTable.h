@@ -8,7 +8,7 @@
 #include "utils.h"
 
 // Global lookup table for instructions
-// (prefix, opcode) -> (register -> operator)
+// (prefix, opcode) -> (reg -> operator)
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
     OP_LOOKUP = {
@@ -20,7 +20,7 @@ const std::unordered_map<std::pair<Prefix, int>,
     };
 
 // Lookup table for operand information
-// (prefix, operator, opcode) -> (encoding, return value, operands)
+// (prefix, operator, opcode) -> (encoding, remaining opecodes, operands)
 const std::unordered_map<std::tuple<Prefix, Mnemonic, int>,
                          std::tuple<OpEnc, std::string, std::vector<Operand>>>
     OPERAND_LOOKUP = {
