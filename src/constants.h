@@ -6,7 +6,7 @@
 
 enum class InstructionCategory { CALL, FUNC_END, JUMP, JCC };
 
-enum class Operand { one, imm8, imm16, imm32, reg, rm, eax, rax, moff };
+enum class Operand { one, imm8, imm16, imm32, reg, rm, al, ax, eax, rax, moff };
 
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
