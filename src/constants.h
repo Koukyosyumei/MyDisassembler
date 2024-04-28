@@ -159,8 +159,8 @@ const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
                                                   "reg + disp32"};
 
 // Define scale factors
-const std::vector<std::string> SCALE = {"index + base", "index * 2 + base",
-                                        "index * 4 + base", "index * 8 + base"};
+// const std::vector<std::string> SCALE = {"index + base", "index * 2 + base",
+//                                        "index * 4 + base", "index * 8 + base"};
 
 inline std::string to_string(Operand opu) {
     switch (opu) {
@@ -250,3 +250,5 @@ const std::unordered_map<int, std::vector<std::string>>
 
 const std::unordered_set<int> PREFIX_INSTRUCTIONS_BYTES_SET = {0x0F, 0xF0, 0xF2,
                                                                0xF3};
+
+const std::vector<int> SCALE_FACTOR = {1, 2, 4, 8};

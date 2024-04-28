@@ -16,7 +16,7 @@
 struct X86Decoder {
     DecoderState state;
     bool hasREX;
-    bool hasModRM;
+    // bool hasModRM;
     bool hasSIB;
 
     size_t curIdx;
@@ -32,7 +32,7 @@ struct X86Decoder {
     SIB sib;
 
     OpEnc opEnc;
-    std::string remOps;
+    std::vector<std::string> remOps;
     std::vector<Operand> operands;
 
     uint8_t disp8 = 0;
@@ -42,7 +42,7 @@ struct X86Decoder {
     std::vector<std::string> assemblyOperands;
 
     X86Decoder(DecoderState& decoderState)
-        : state(decoderState), hasREX(false), hasModRM(false), hasSIB(false) {}
+        : state(decoderState), hasREX(false), hasSIB(false) {}
 
     void parsePrefixInstructions() {
         int startByte = state.objectSource[curIdx];
@@ -92,7 +92,7 @@ struct X86Decoder {
         }
 
         assemblyInstruction.push_back(mnemonic);
-        std::tuple<OpEnc, std::string, std::vector<Operand>> res =
+        std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
         opEnc = std::get<0>(res);
         remOps = std::get<1>(res);
@@ -176,9 +176,9 @@ struct X86Decoder {
 
             if (operand == Operand::eax) {
                 decodedTranslatedValue = "eax";
-            }
-
-            else if (operand == Operand::rm || operand == Operand::reg) {
+            } else if (operand == Operand::rax) {
+                decodedTranslatedValue = "rax";
+            } else if (operand == Operand::rm || operand == Operand::reg) {
                 if (hasModrm(opEnc))
                     if (operand == Operand::rm)
                         decodedTranslatedValue = modrm.addressingMode;
@@ -186,10 +186,8 @@ struct X86Decoder {
                         decodedTranslatedValue = modrm.reg;
                 else
                     decodedTranslatedValue =
-                        id2register.at(int(remOps[0] - '0'));
-            }
-
-            else if (operand == Operand::imm32) {
+                        id2register.at(std::stoi(remOps[0]));
+            } else if (operand == Operand::imm32) {
                 imm = std::vector<uint8_t>(
                     state.objectSource.begin() + curIdx,
                     state.objectSource.begin() + curIdx + 4);
@@ -204,9 +202,41 @@ struct X86Decoder {
                        << static_cast<int>(x);
                 }
                 decodedTranslatedValue = "0x" + ss.str();
+            } else if (operand == Operand::imm16) {
+                imm = std::vector<uint8_t>(
+                    state.objectSource.begin() + curIdx,
+                    state.objectSource.begin() + curIdx + 2);
+                std::reverse(imm.begin(), imm.end());
+                instructionLen += 2;
+                curIdx += 2;
+
+                std::stringstream ss;
+                ss << "0x";
+                for (unsigned char x : imm) {
+                    ss << std::hex << std::setw(2) << std::setfill('0')
+                       << static_cast<int>(x);
+                }
+                decodedTranslatedValue = "0x" + ss.str();
+            } else if (operand == Operand::imm8) {
+                imm = std::vector<uint8_t>(
+                    state.objectSource.begin() + curIdx,
+                    state.objectSource.begin() + curIdx + 1);
+                std::reverse(imm.begin(), imm.end());
+                instructionLen += 1;
+                curIdx += 1;
+
+                std::stringstream ss;
+                ss << "0x";
+                for (unsigned char x : imm) {
+                    ss << std::hex << std::setw(2) << std::setfill('0')
+                       << static_cast<int>(x);
+                }
+                decodedTranslatedValue = "0x" + ss.str();
             }
 
-            // More conditions for other operand types...
+            if (hasModrm(opEnc) && modrm.hasSib) {
+
+            }
 
             assemblyOperands.push_back(decodedTranslatedValue);
         }

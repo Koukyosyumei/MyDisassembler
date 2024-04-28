@@ -99,6 +99,9 @@ struct SIB {
     unsigned char baseByte;
 
     std::string address;
+
+    std::string baseReg, indexReg;
+    int scale;
     bool hasDisp8;
     bool hasDisp32;
 
@@ -107,6 +110,24 @@ struct SIB {
         scaleByte = (sibByte >> 6) & 0x3;
         indexByte = (sibByte >> 3) & 0x7;
         baseByte = sibByte & 0x7;
+
+        if (baseByte == 5) {
+            switch (modByte) {
+                case 0:
+                    baseReg = "disp32";
+                case 1:
+                    baseReg = rexb ? "RBP + disp8" : "R13 + disp8";
+                case 2:
+                    baseReg = rexb ? "RBP + disp32" : "R13 + disp32";
+            }
+        } else {
+            baseReg = id2register.at(baseByte + (rexb ? 0 : 8));
+        }
+
+        indexReg = id2register.at(indexByte + (rexb ? 0 : 8));
+        scale = SCALE_FACTOR.at(scaleByte);
+
+        address = baseReg + " + " + indexReg + " * " + std::to_string(scale);
     }
 };
 
