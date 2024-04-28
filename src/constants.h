@@ -113,6 +113,197 @@ enum class Mnemonic {
     CLC
 };
 
+inline std::string to_string(Mnemonic mnemonic) {
+    switch (mnemonic) {
+        case Mnemonic::MOV:
+            return "MOV";
+        case Mnemonic::LEA:
+            return "LEA";
+        case Mnemonic::ADD:
+            return "ADD";
+        case Mnemonic::ADC:
+            return "ADC";
+        case Mnemonic::SUB:
+            return "SUB";
+        case Mnemonic::SBB:
+            return "SBB";
+        case Mnemonic::MUL:
+            return "MUL";
+        case Mnemonic::IMUL:
+            return "IMUL";
+        case Mnemonic::DIV:
+            return "DIV";
+        case Mnemonic::IDIV:
+            return "IDIV";
+        case Mnemonic::INC:
+            return "INC";
+        case Mnemonic::DEC:
+            return "DEC";
+        case Mnemonic::AND:
+            return "AND";
+        case Mnemonic::OR:
+            return "OR";
+        case Mnemonic::XOR:
+            return "XOR";
+        case Mnemonic::NOT:
+            return "NOT";
+        case Mnemonic::NEG:
+            return "NEG";
+        case Mnemonic::CMP:
+            return "CMP";
+        case Mnemonic::TEST:
+            return "TEST";
+        case Mnemonic::SAL:
+            return "SAL";
+        case Mnemonic::SHL:
+            return "SHL";
+        case Mnemonic::SAR:
+            return "SAR";
+        case Mnemonic::SHR:
+            return "SHR";
+        case Mnemonic::RCL:
+            return "RCL";
+        case Mnemonic::RCR:
+            return "RCR";
+        case Mnemonic::ROL:
+            return "ROL";
+        case Mnemonic::ROR:
+            return "ROR";
+        case Mnemonic::JMP:
+            return "JMP";
+        case Mnemonic::LOOP:
+            return "LOOP";
+        case Mnemonic::JZ:
+            return "JZ";
+        case Mnemonic::JNZ:
+            return "JNZ";
+        case Mnemonic::JA:
+            return "JA";
+        case Mnemonic::JAE:
+            return "JAE";
+        case Mnemonic::JB:
+            return "JB";
+        case Mnemonic::JBE:
+            return "JBE";
+        case Mnemonic::JG:
+            return "JG";
+        case Mnemonic::JGE:
+            return "JGE";
+        case Mnemonic::JL:
+            return "JL";
+        case Mnemonic::JLE:
+            return "JLE";
+        case Mnemonic::JP:
+            return "JP";
+        case Mnemonic::JNP:
+            return "JNP";
+        case Mnemonic::JO:
+            return "JO";
+        case Mnemonic::JNO:
+            return "JNO";
+        case Mnemonic::JS:
+            return "JS";
+        case Mnemonic::JC:
+            return "JC";
+        case Mnemonic::JCXZ:
+            return "JCXZ";
+        case Mnemonic::JECXZ:
+            return "JECXZ";
+        case Mnemonic::CALL:
+            return "CALL";
+        case Mnemonic::RET:
+            return "RET";
+        case Mnemonic::PUSH:
+            return "PUSH";
+        case Mnemonic::POP:
+            return "POP";
+        case Mnemonic::MOVSB:
+            return "MOVSB";
+        case Mnemonic::MOVSW:
+            return "MOVSW";
+        case Mnemonic::MOVSD:
+            return "MOVSD";
+        case Mnemonic::REP:
+            return "REP";
+        case Mnemonic::REPE:
+            return "REPE";
+        case Mnemonic::REPNE:
+            return "REPNE";
+        case Mnemonic::CLD:
+            return "CLD";
+        case Mnemonic::STD:
+            return "STD";
+        case Mnemonic::LODSB:
+            return "LODSB";
+        case Mnemonic::LODSW:
+            return "LODSW";
+        case Mnemonic::LODSD:
+            return "LODSD";
+        case Mnemonic::STOSB:
+            return "STOSB";
+        case Mnemonic::STOSW:
+            return "STOSW";
+        case Mnemonic::STOSD:
+            return "STOSD";
+        case Mnemonic::SCASB:
+            return "SCASB";
+        case Mnemonic::SCASW:
+            return "SCASW";
+        case Mnemonic::SCASD:
+            return "SCASD";
+        case Mnemonic::CMPSB:
+            return "CMPSB";
+        case Mnemonic::CMPSW:
+            return "CMPSW";
+        case Mnemonic::CMPSD:
+            return "CMPSD";
+        case Mnemonic::IN:
+            return "IN";
+        case Mnemonic::OUT:
+            return "OUT";
+        case Mnemonic::INSB:
+            return "INSB";
+        case Mnemonic::INSW:
+            return "INSW";
+        case Mnemonic::INSD:
+            return "INSD";
+        case Mnemonic::OUTSB:
+            return "OUTSB";
+        case Mnemonic::OUTSW:
+            return "OUTSW";
+        case Mnemonic::OUTSD:
+            return "OUTSD";
+        case Mnemonic::CBW:
+            return "CBW";
+        case Mnemonic::CWD:
+            return "CWD";
+        case Mnemonic::CWDE:
+            return "CWDE";
+        case Mnemonic::CDQ:
+            return "CDQ";
+        case Mnemonic::INT21:
+            return "INT21";
+        case Mnemonic::LOCK:
+            return "LOCK";
+        case Mnemonic::ENTER:
+            return "ENTER";
+        case Mnemonic::LEAVE:
+            return "LEAVE";
+        case Mnemonic::NOP:
+            return "NOP";
+        case Mnemonic::UD2:
+            return "UD2";
+        case Mnemonic::CPUID:
+            return "CPUID";
+        case Mnemonic::XCHG:
+            return "XCHG";
+        case Mnemonic::STC:
+            return "STC";
+        case Mnemonic::CLC:
+            return "CLC";
+    }
+}
+
 enum class Registers {
     RAX,
     RCX,
@@ -160,7 +351,8 @@ const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
 
 // Define scale factors
 // const std::vector<std::string> SCALE = {"index + base", "index * 2 + base",
-//                                        "index * 4 + base", "index * 8 + base"};
+//                                        "index * 4 + base", "index * 8 +
+//                                        base"};
 
 inline std::string to_string(Operand opu) {
     switch (opu) {

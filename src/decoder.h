@@ -19,6 +19,7 @@ struct X86Decoder {
     // bool hasModRM;
     bool hasSIB;
 
+    size_t startIdx;
     size_t curIdx;
     size_t instructionLen;
     size_t prefixOffset;
@@ -38,7 +39,7 @@ struct X86Decoder {
     uint8_t disp8 = 0;
     std::vector<uint8_t> disp32;
 
-    std::vector<Mnemonic> assemblyInstruction;
+    std::vector<std::string> assemblyInstruction;
     std::vector<std::string> assemblyOperands;
 
     X86Decoder(DecoderState& decoderState)
@@ -91,7 +92,7 @@ struct X86Decoder {
             mnemonic = reg2mnem[-1];
         }
 
-        assemblyInstruction.push_back(mnemonic);
+        assemblyInstruction.push_back(to_string(mnemonic));
         std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
         opEnc = std::get<0>(res);
@@ -152,7 +153,7 @@ struct X86Decoder {
 
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
         // ############### Initialize ##############################
-        curIdx = state.getCurIdx();
+        startIdx = curIdx = state.getCurIdx();
         instructionLen = 1;
         prefixOffset = 0;
         opcodeByte = modrmByte = sibByte = 0;
@@ -257,6 +258,6 @@ struct X86Decoder {
         uint64_t targetAddr =
             state.markDecoded(startIdx, instructionLen, assemblyInstructionStr);
 
-        return std::make_pair(operator_, targetAddr);
+        return std::make_pair(to_string(mnemonic), targetAddr);
     }
 };
