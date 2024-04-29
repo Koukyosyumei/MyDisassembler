@@ -6,7 +6,30 @@
 
 enum class InstructionCategory { CALL, FUNC_END, JUMP, JCC };
 
-enum class Operand { one, imm8, imm16, imm32, imm64, reg, rm, sreg, al, ax, eax, rax, moff };
+enum class Operand {
+    one,
+    imm8,
+    imm16,
+    imm32,
+    imm64,
+    reg8,
+    reg16,
+    reg32,
+    reg64,
+    rm8,
+    rm16,
+    rm32,
+    rm64,
+    sreg,
+    al,
+    ax,
+    eax,
+    rax,
+    moffs8,
+    moffs16,
+    moffs32,
+    moffs64
+};
 
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
@@ -101,6 +124,8 @@ enum class Mnemonic {
     CWD,
     CWDE,
     CDQ,
+    CDQE,
+    CQO,
     INT21,
     LOCK,
     ENTER,
@@ -279,8 +304,8 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "CWD";
         case Mnemonic::CWDE:
             return "CWDE";
-        case Mnemonic::CDQ:
-            return "CDQ";
+        case Mnemonic::CDQE:
+            return "CDQE";
         case Mnemonic::INT21:
             return "INT21";
         case Mnemonic::LOCK:
@@ -342,8 +367,18 @@ const std::unordered_map<std::string, InstructionCategory>
 };
 
 // Define register names
-const std::vector<std::string> REGISTERS = {"eax", "ecx", "edx", "ebx",
-                                            "esp", "ebp", "esi", "edi"};
+const std::vector<std::string> REGISTERS8 = {
+    "al",  "cl",  "dl",   "bpl",  "spl",  "bpl",  "sil",  "dil",
+    "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"};
+const std::vector<std::string> REGISTERS16 = {
+    "ax",  "cx",  "dx",   "bx",   "sp",   "bp",   "si",   "di",
+    "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"};
+const std::vector<std::string> REGISTERS32 = {
+    "eax", "ecx", "edx",  "ebx",  "esp",  "ebp",  "esi",  "edi",
+    "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"};
+const std::vector<std::string> REGISTERS64 = {
+    "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
+    "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15"};
 
 // Define addressing modes (no need for square brackets)
 const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
@@ -364,14 +399,34 @@ inline std::string to_string(Operand opu) {
             return "imm16";
         case Operand::imm32:
             return "imm32";
-        case Operand::reg:
-            return "reg";
-        case Operand::rm:
-            return "rm";
+        case Operand::imm64:
+            return "imm64";
+        case Operand::reg8:
+            return "reg8";
+        case Operand::reg16:
+            return "reg16";
+        case Operand::reg32:
+            return "reg32";
+        case Operand::reg64:
+            return "reg64";
+        case Operand::rm8:
+            return "rm8";
+        case Operand::rm16:
+            return "rm16";
+        case Operand::rm32:
+            return "rm32";
+        case Operand::rm64:
+            return "rm64";
         case Operand::eax:
             return "eax";
-        case Operand::moff:
-            return "moff";
+        case Operand::moffs8:
+            return "moffs8";
+        case Operand::moffs16:
+            return "moffs8";
+        case Operand::moffs32:
+            return "moffs8";
+        case Operand::moffs64:
+            return "moffs8";
         default:
             return "unknown";
     }
