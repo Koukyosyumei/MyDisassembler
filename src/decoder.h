@@ -10,7 +10,7 @@
 
 #include "constants.h"
 #include "modrm.h"
-#include "operatorTable.h"
+#include "table.h"
 #include "state.h"
 
 struct X86Decoder {
@@ -36,7 +36,7 @@ struct X86Decoder {
     std::vector<std::string> remOps;
     std::vector<Operand> operands;
 
-    uint8_t disp8 = 0;
+    uint8_t disp8 = -1;
     std::vector<uint8_t> disp32;
 
     std::vector<std::string> assemblyInstruction;
@@ -236,7 +236,15 @@ struct X86Decoder {
             }
 
             if (hasModrm(opEnc) && modrm.hasSib) {
+                // sib.address
+            }
 
+            if (disp8 > 0) {
+                decodedTranslatedValue += " disp8=" + std::to_string(disp8);
+            }
+
+            if (disp32.size() > 0) {
+                decodedTranslatedValue += " disp32=<UNIMPLEMENTED>";
             }
 
             assemblyOperands.push_back(decodedTranslatedValue);

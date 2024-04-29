@@ -11,11 +11,36 @@
 // (prefix, opcode) -> (reg -> operator)
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
-    OP_LOOKUP = {{{Prefix::NONE, u2d("\x05")}, {{-1, Mnemonic::ADD}}},
-                 {{Prefix::NONE, u2d("\x81")}, {{u2d("\x00"), Mnemonic::ADD}}},
-                 {{Prefix::NONE, u2d("\x83")}, {{u2d("\x00"), Mnemonic::ADD}}},
-                 {{Prefix::NONE, u2d("\x01")}, {{-1, Mnemonic::ADD}}},
-                 {{Prefix::NONE, u2d("\x03")}, {{-1, Mnemonic::ADD}}}};
+    OP_LOOKUP = {
+        // ADD
+        {{Prefix::NONE, u2d("\x05")}, {{-1, Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x81")}, {{u2d("\x00"), Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x83")}, {{u2d("\x00"), Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x01")}, {{-1, Mnemonic::ADD}}},
+        {{Prefix::NONE, u2d("\x03")}, {{-1, Mnemonic::ADD}}},
+        // ADC
+        {{Prefix::NONE, u2d("\x15")}, {{-1, Mnemonic::ADC}}},
+        {{Prefix::NONE, u2d("\x81")}, {{u2d("\x02"), Mnemonic::ADC}}},
+        {{Prefix::NONE, u2d("\x83")}, {{u2d("\x02"), Mnemonic::ADC}}},
+        {{Prefix::NONE, u2d("\x11")}, {{-1, Mnemonic::ADC}}},
+        {{Prefix::NONE, u2d("\x13")}, {{-1, Mnemonic::ADC}}},
+        // SUB
+        {{Prefix::NONE, u2d("\x2D")}, {{-1, Mnemonic::SUB}}},
+        {{Prefix::NONE, u2d("\x81")}, {{u2d("\x05"), Mnemonic::SUB}}},
+        {{Prefix::NONE, u2d("\x83")}, {{u2d("\x05"), Mnemonic::SUB}}},
+        {{Prefix::NONE, u2d("\x29")}, {{-1, Mnemonic::SUB}}},
+        {{Prefix::NONE, u2d("\x2B")}, {{-1, Mnemonic::SUB}}},
+        // SBB
+        {{Prefix::NONE, u2d("\x1D")}, {{-1, Mnemonic::SBB}}},
+        {{Prefix::NONE, u2d("\x81")}, {{u2d("\x03"), Mnemonic::SBB}}},
+        {{Prefix::NONE, u2d("\x83")}, {{u2d("\x03"), Mnemonic::SBB}}},
+        {{Prefix::NONE, u2d("\x19")}, {{-1, Mnemonic::SBB}}},
+        {{Prefix::NONE, u2d("\x1B")}, {{-1, Mnemonic::SBB}}},
+        // NOP
+        {{Prefix::NONE, u2d("\x90")}, {{-1, Mnemonic::NOP}}},
+        // RET
+        {{Prefix::NONE, u2d("\xCB")}, {{-1, Mnemonic::RET}}},
+};
 
 // Lookup table for operand information
 // (prefix, operator, opcode) -> (encoding, remaining opecodes, operands)
@@ -394,13 +419,13 @@ const std::unordered_map<
         {{Prefix::REXW, Mnemonic::MOV, u2d("\x8B")},
          {OpEnc::RM, {"/r"}, {Operand::reg, Operand::rm}}},
         {{Prefix::NONE, Mnemonic::MOV, u2d("\x8C")},
-         {OpEnc::MR, {"/r"}, {Operand::rm, Operand::reg}}},
+         {OpEnc::MR, {"/r"}, {Operand::rm, Operand::sreg}}},
         {{Prefix::REXW, Mnemonic::MOV, u2d("\x8C")},
-         {OpEnc::MR, {"/r"}, {Operand::rm, Operand::reg}}},
+         {OpEnc::MR, {"/r"}, {Operand::rm, Operand::sreg}}},
         {{Prefix::NONE, Mnemonic::MOV, u2d("\x8E")},
-         {OpEnc::RM, {"/r"}, {Operand::reg, Operand::rm}}},
+         {OpEnc::RM, {"/r"}, {Operand::sreg, Operand::rm}}},
         {{Prefix::REXW, Mnemonic::MOV, u2d("\x8E")},
-         {OpEnc::RM, {"/r"}, {Operand::reg, Operand::rm}}},
+         {OpEnc::RM, {"/r"}, {Operand::sreg, Operand::rm}}},
         {{Prefix::NONE, Mnemonic::MOV, u2d("\xA0")},
          {OpEnc::M, {}, {Operand::al, Operand::moff}}},
         {{Prefix::REXW, Mnemonic::MOV, u2d("\xA0")},
@@ -509,6 +534,17 @@ const std::unordered_map<
          {OpEnc::MI, {"id"}, {Operand::rm, Operand::imm32}}},
         {{Prefix::REXW, Mnemonic::MOV, u2d("\xC7")},
          {OpEnc::MI, {"id"}, {Operand::rm, Operand::imm32}}},
+        // NOP
+        {{Prefix::NONE, Mnemonic::NOP, u2d("\x90")}, {OpEnc::NP, {}, {}}},
+        // RET
+        {{Prefix::NONE, Mnemonic::RET, u2d("\xCB")}, {OpEnc::NP, {}, {}}},
+        // JMP
+        {{Prefix::NONE, Mnemonic::JMP, u2d("\xEB")},
+         {OpEnc::D, {"cd"}, {Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::JMP, u2d("\xE9")},
+         {OpEnc::D, {"cd"}, {Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::JMP, u2d("\xFF")},
+         {OpEnc::M, {}, {Operand::reg}}},
 };
 
 // Supported operators set

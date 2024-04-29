@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "operatorTable.h"
+#include "table.h"
 
 const std::string UNKNOWN_INSTRUCTION = "???";
 
@@ -138,8 +138,8 @@ struct DecoderState {
 
     bool isComplete() {
         int countFalse = std::count(_hasDecoded.begin(), _hasDecoded.end(), false);
-        int countNone = std::count(_hasDecoded.begin(), _hasDecoded.end(), nullptr);
-        return countFalse == 0 && countNone == 0;
+        // int countNone = std::count(_hasDecoded.begin(), _hasDecoded.end(), nullptr);
+        return countFalse == 0; // && countNone == 0;
     }
 
     bool isSweepComplete() {

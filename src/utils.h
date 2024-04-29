@@ -13,31 +13,31 @@ namespace {
 //     http://stackoverflow.com/questions/4948780
 
 template <class T>
-inline void hash_combine(std::size_t& seed, T const& v) {
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+inline std::size_t hash_combine(std::size_t seed, T const& v) {
+    return seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 // Recursive template code derived from Matthieu M.
 template <class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
 struct HashValueImpl {
-    static void apply(size_t& seed, Tuple const& tuple) {
+    static void apply(size_t &seed, Tuple const& tuple) {
         HashValueImpl<Tuple, Index - 1>::apply(seed, tuple);
-        hash_combine(seed, std::get<Index>(tuple));
+        seed = hash_combine(seed, std::get<Index>(tuple));
     }
 };
 
 template <class Tuple>
 struct HashValueImpl<Tuple, 0> {
-    static void apply(size_t& seed, Tuple const& tuple) {
-        hash_combine(seed, std::get<0>(tuple));
+    static void apply(size_t &seed, Tuple const& tuple) {
+        seed = hash_combine(seed, std::get<0>(tuple));
     }
 };
 }  // namespace
 
 template <class T, class S>
-struct std::hash<std::pair<T, S>> {
+struct hash<std::pair<T, S>> {
     size_t operator()(const std::pair<T, S>& keyval) const noexcept {
-        return hash_combine(std::hash<T>()(keyval.first), keyval.second);
+        return hash_combine<S>(std::hash<T>()(keyval.first), keyval.second);
     }
 };
 

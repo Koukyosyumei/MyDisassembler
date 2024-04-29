@@ -1,0 +1,29 @@
+Start testing: Apr 29 17:35 JST
+----------------------------------------------------------
+1/1 Testing: decoder.NOP
+1/1 Test: decoder.NOP
+Command: "/mnt/c/Users/kanka/Desktop/Dev/MyDisassembler/build/test/myplan-test" "--gtest_filter=decoder.NOP" "--gtest_also_run_disabled_tests"
+Directory: /mnt/c/Users/kanka/Desktop/Dev/MyDisassembler/build/test
+"decoder.NOP" start time: Apr 29 17:35 JST
+Output:
+----------------------------------------------------------
+Note: Google Test filter = decoder.NOP
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from decoder
+[ RUN      ] decoder.NOP
+[       OK ] decoder.NOP (0 ms)
+[----------] 1 test from decoder (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Passed.
+"decoder.NOP" end time: Apr 29 17:35 JST
+"decoder.NOP" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Apr 29 17:35 JST
