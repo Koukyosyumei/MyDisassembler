@@ -18,6 +18,8 @@ struct X86Decoder {
     bool hasREX;
     // bool hasModRM;
     bool hasSIB;
+    bool hasDisp8;
+    bool hasDisp32;
 
     size_t startIdx;
     size_t curIdx;
@@ -46,6 +48,8 @@ struct X86Decoder {
         : state(decoderState),
           hasREX(false),
           hasSIB(false),
+          hasDisp8(false),
+          hasDisp32(false),
           startIdx(0),
           curIdx(0),
           instructionLen(0),
@@ -54,7 +58,7 @@ struct X86Decoder {
           disp8(-1) {}
 
     void init() {
-        hasREX = hasSIB = false;
+        hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
         startIdx = 0;
         curIdx = 0;
         instructionLen = 0;
@@ -163,7 +167,9 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
+            std::cout << "update disp8!!" << std::endl;
             disp8 = state->objectSource[curIdx];
+            hasDisp8 = true;
             instructionLen += 1;
             curIdx += 1;
         }
@@ -176,6 +182,7 @@ struct X86Decoder {
                 std::vector<uint8_t>(state->objectSource.begin() + curIdx,
                                      state->objectSource.begin() + curIdx + 4);
             std::reverse(disp32.begin(), disp32.end());
+            hasDisp32 = true;
             instructionLen += 4;
             curIdx += 4;
         }
@@ -231,7 +238,7 @@ struct X86Decoder {
                     ss << std::hex << std::setw(2) << std::setfill('0')
                        << static_cast<int>(x);
                 }
-                decodedTranslatedValue = "0x" + ss.str();
+                decodedTranslatedValue = ss.str();
             } else if (operand == Operand::imm16) {
                 imm = std::vector<uint8_t>(
                     state->objectSource.begin() + curIdx,
@@ -246,7 +253,7 @@ struct X86Decoder {
                     ss << std::hex << std::setw(2) << std::setfill('0')
                        << static_cast<int>(x);
                 }
-                decodedTranslatedValue = "0x" + ss.str();
+                decodedTranslatedValue = ss.str();
             } else if (operand == Operand::imm8) {
                 imm = std::vector<uint8_t>(
                     state->objectSource.begin() + curIdx,
@@ -261,18 +268,19 @@ struct X86Decoder {
                     ss << std::hex << std::setw(2) << std::setfill('0')
                        << static_cast<int>(x);
                 }
-                decodedTranslatedValue = "0x" + ss.str();
+                decodedTranslatedValue = ss.str();
             }
 
             if (hasModrm(opEnc) && modrm.hasSib) {
                 // sib.address
             }
 
-            if (disp8 > 0) {
+            // std::cout << "disp8!!! " << disp8 << std::endl;
+            if (hasDisp8) {
                 decodedTranslatedValue += " disp8=" + std::to_string(disp8);
             }
 
-            if (disp32.size() > 0) {
+            if (hasDisp32) {
                 decodedTranslatedValue += " disp32=<UNIMPLEMENTED>";
             }
 
