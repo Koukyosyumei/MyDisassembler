@@ -14,7 +14,7 @@
 #include "table.h"
 
 struct X86Decoder {
-    DecoderState *state;
+    DecoderState* state;
     bool hasREX;
     // bool hasModRM;
     bool hasSIB;
@@ -52,6 +52,28 @@ struct X86Decoder {
           prefixOffset(0),
           prefix(Prefix::NONE),
           disp8(-1) {}
+
+    void init() {
+        hasREX = hasSIB = false;
+        startIdx = 0;
+        curIdx = 0;
+        instructionLen = 0;
+        prefixOffset = 0;
+        prefix = Prefix::NONE;
+        disp8 = -1;
+
+        prefixInstructionByte = opcodeByte = modrmByte = sibByte = 0;
+
+        remOps.clear();
+        remOps.shrink_to_fit();
+        operands.clear();
+        operands.shrink_to_fit();
+
+        assemblyInstruction.clear();
+        assemblyInstruction.shrink_to_fit();
+        assemblyOperands.clear();
+        assemblyOperands.shrink_to_fit();
+    }
 
     void parsePrefixInstructions() {
         int startByte = state->objectSource[curIdx];
@@ -161,10 +183,9 @@ struct X86Decoder {
 
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
         // ############### Initialize ##############################
+        init();
         startIdx = curIdx = state->getCurIdx();
         instructionLen = 1;
-        prefixOffset = 0;
-        opcodeByte = modrmByte = sibByte = 0;
 
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
@@ -271,8 +292,8 @@ struct X86Decoder {
             assemblyInstructionStr += " " + a;
         }
 
-        uint64_t targetAddr =
-            state->markDecoded(startIdx, instructionLen, assemblyInstructionStr);
+        uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
+                                                 assemblyInstructionStr);
 
         return std::make_pair(to_string(mnemonic), targetAddr);
     }
