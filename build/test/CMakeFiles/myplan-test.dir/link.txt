@@ -1,1 +1,0 @@
-/usr/bin/c++  -O3 -mtune=native -march=native "CMakeFiles/myplan-test.dir/main.cpp.o" "CMakeFiles/myplan-test.dir/decoder.cpp.o" -o myplan-test  -lgtest -lgtest_main -lpthread 
