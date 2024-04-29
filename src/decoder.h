@@ -10,11 +10,11 @@
 
 #include "constants.h"
 #include "modrm.h"
-#include "table.h"
 #include "state.h"
+#include "table.h"
 
 struct X86Decoder {
-    DecoderState state;
+    DecoderState *state;
     bool hasREX;
     // bool hasModRM;
     bool hasSIB;
@@ -36,17 +36,25 @@ struct X86Decoder {
     std::vector<std::string> remOps;
     std::vector<Operand> operands;
 
-    uint8_t disp8 = -1;
+    uint8_t disp8;
     std::vector<uint8_t> disp32;
 
     std::vector<std::string> assemblyInstruction;
     std::vector<std::string> assemblyOperands;
 
-    X86Decoder(DecoderState& decoderState)
-        : state(decoderState), hasREX(false), hasSIB(false) {}
+    X86Decoder(DecoderState* decoderState)
+        : state(decoderState),
+          hasREX(false),
+          hasSIB(false),
+          startIdx(0),
+          curIdx(0),
+          instructionLen(0),
+          prefixOffset(0),
+          prefix(Prefix::NONE),
+          disp8(-1) {}
 
     void parsePrefixInstructions() {
-        int startByte = state.objectSource[curIdx];
+        int startByte = state->objectSource[curIdx];
         if (PREFIX_INSTRUCTIONS_BYTES_SET.find(startByte) !=
             PREFIX_INSTRUCTIONS_BYTES_SET.end()) {
             // eat prefix
@@ -59,9 +67,9 @@ struct X86Decoder {
 
     void parseREX() {
         // The format of REX prefix is 0100|W|R|X|B
-        if ((state.objectSource[curIdx] >> 4) == 4) {
+        if ((state->objectSource[curIdx] >> 4) == 4) {
             hasREX = true;
-            rex = REX(state.objectSource[curIdx]);
+            rex = REX(state->objectSource[curIdx]);
             instructionLen += 1;
             curIdx += 1;
         }
@@ -69,7 +77,7 @@ struct X86Decoder {
 
     void parseOpecode() {
         // eat opecode
-        opcodeByte = state.objectSource[curIdx];
+        opcodeByte = state->objectSource[curIdx];
         instructionLen += 1;
         curIdx += 1;
 
@@ -80,8 +88,8 @@ struct X86Decoder {
         // We sometimes need reg of modrm to determine the opecode
         // e.g. 83 /4 -> AND
         //      83 /1 -> OR
-        if (curIdx < state.objectSource.size()) {
-            modrmByte = state.objectSource[curIdx];
+        if (curIdx < state->objectSource.size()) {
+            modrmByte = state->objectSource[curIdx];
         }
 
         if (modrmByte != 0) {
@@ -115,8 +123,8 @@ struct X86Decoder {
     void parseSIB() {
         if (hasModrm(opEnc) && modrm.hasSib) {
             // eat the sib (1 byte)
-            if (curIdx < state.objectSource.size()) {
-                sibByte = state.objectSource[curIdx];
+            if (curIdx < state->objectSource.size()) {
+                sibByte = state->objectSource[curIdx];
             }
             if (sibByte == 0) {
                 throw std::runtime_error(
@@ -133,7 +141,7 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            disp8 = state.objectSource[curIdx];
+            disp8 = state->objectSource[curIdx];
             instructionLen += 1;
             curIdx += 1;
         }
@@ -143,8 +151,8 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib &&
              (modrm.modByte == 0 || modrm.modByte == 2) && sib.baseByte == 5)) {
             disp32 =
-                std::vector<uint8_t>(state.objectSource.begin() + curIdx,
-                                     state.objectSource.begin() + curIdx + 4);
+                std::vector<uint8_t>(state->objectSource.begin() + curIdx,
+                                     state->objectSource.begin() + curIdx + 4);
             std::reverse(disp32.begin(), disp32.end());
             instructionLen += 4;
             curIdx += 4;
@@ -153,7 +161,7 @@ struct X86Decoder {
 
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
         // ############### Initialize ##############################
-        startIdx = curIdx = state.getCurIdx();
+        startIdx = curIdx = state->getCurIdx();
         instructionLen = 1;
         prefixOffset = 0;
         opcodeByte = modrmByte = sibByte = 0;
@@ -190,8 +198,8 @@ struct X86Decoder {
                         id2register.at(std::stoi(remOps[0]));
             } else if (operand == Operand::imm32) {
                 imm = std::vector<uint8_t>(
-                    state.objectSource.begin() + curIdx,
-                    state.objectSource.begin() + curIdx + 4);
+                    state->objectSource.begin() + curIdx,
+                    state->objectSource.begin() + curIdx + 4);
                 std::reverse(imm.begin(), imm.end());
                 instructionLen += 4;
                 curIdx += 4;
@@ -205,8 +213,8 @@ struct X86Decoder {
                 decodedTranslatedValue = "0x" + ss.str();
             } else if (operand == Operand::imm16) {
                 imm = std::vector<uint8_t>(
-                    state.objectSource.begin() + curIdx,
-                    state.objectSource.begin() + curIdx + 2);
+                    state->objectSource.begin() + curIdx,
+                    state->objectSource.begin() + curIdx + 2);
                 std::reverse(imm.begin(), imm.end());
                 instructionLen += 2;
                 curIdx += 2;
@@ -220,8 +228,8 @@ struct X86Decoder {
                 decodedTranslatedValue = "0x" + ss.str();
             } else if (operand == Operand::imm8) {
                 imm = std::vector<uint8_t>(
-                    state.objectSource.begin() + curIdx,
-                    state.objectSource.begin() + curIdx + 1);
+                    state->objectSource.begin() + curIdx,
+                    state->objectSource.begin() + curIdx + 1);
                 std::reverse(imm.begin(), imm.end());
                 instructionLen += 1;
                 curIdx += 1;
@@ -264,7 +272,7 @@ struct X86Decoder {
         }
 
         uint64_t targetAddr =
-            state.markDecoded(startIdx, instructionLen, assemblyInstructionStr);
+            state->markDecoded(startIdx, instructionLen, assemblyInstructionStr);
 
         return std::make_pair(to_string(mnemonic), targetAddr);
     }

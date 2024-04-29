@@ -39,7 +39,7 @@ const std::unordered_map<std::pair<Prefix, int>,
         // NOP
         {{Prefix::NONE, u2d("\x90")}, {{-1, Mnemonic::NOP}}},
         // RET
-        {{Prefix::NONE, u2d("\xCB")}, {{-1, Mnemonic::RET}}},
+        {{Prefix::NONE, u2d("\xC3")}, {{-1, Mnemonic::RET}}},
 };
 
 // Lookup table for operand information
@@ -537,6 +537,7 @@ const std::unordered_map<
         // NOP
         {{Prefix::NONE, Mnemonic::NOP, u2d("\x90")}, {OpEnc::NP, {}, {}}},
         // RET
+        {{Prefix::NONE, Mnemonic::RET, u2d("\xC3")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::RET, u2d("\xCB")}, {OpEnc::NP, {}, {}}},
         // JMP
         {{Prefix::NONE, Mnemonic::JMP, u2d("\xEB")},
