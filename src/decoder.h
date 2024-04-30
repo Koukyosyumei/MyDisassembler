@@ -192,6 +192,7 @@ struct X86Decoder {
         // ############### Initialize ##############################
         init();
         startIdx = curIdx = state->getCurIdx();
+        std::cout << startIdx << " " << curIdx << std::endl;
         instructionLen = 1;
 
         // the general format of the x86-64 operations
@@ -310,6 +311,7 @@ struct X86Decoder {
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
+        std::cout << assemblyInstructionStr << std::endl;
 
         uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
                                                  assemblyInstructionStr);
