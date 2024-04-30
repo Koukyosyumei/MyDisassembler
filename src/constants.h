@@ -20,6 +20,7 @@ enum class Operand {
     rm16,
     rm32,
     rm64,
+    reg,
     sreg,
     al,
     ax,
@@ -326,6 +327,8 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "STC";
         case Mnemonic::CLC:
             return "CLC";
+        default:
+            return "UNKNOWN";
     }
 }
 
