@@ -64,9 +64,6 @@ inline bool is64Bit(Operand operand) {
     return operand == Operand::rm64 || operand == Operand::reg64;
 }
 
-
-
-
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
 enum class Prefix {
@@ -180,193 +177,203 @@ enum class Mnemonic {
 inline std::string to_string(Mnemonic mnemonic) {
     switch (mnemonic) {
         case Mnemonic::MOV:
-            return "MOV";
+            return "mov";
+        case Mnemonic::MOVSX:
+            return "movsx";
+        case Mnemonic::MOVSXD:
+            return "movsxd";
+        case Mnemonic::MOVZX:
+            return "movzx";
         case Mnemonic::LEA:
-            return "LEA";
+            return "lea";
         case Mnemonic::ADD:
-            return "ADD";
+            return "add";
         case Mnemonic::ADC:
-            return "ADC";
+            return "adc";
         case Mnemonic::SUB:
-            return "SUB";
+            return "sub";
         case Mnemonic::SBB:
-            return "SBB";
+            return "sbb";
         case Mnemonic::MUL:
-            return "MUL";
+            return "mul";
         case Mnemonic::IMUL:
-            return "IMUL";
+            return "imul";
         case Mnemonic::DIV:
-            return "DIV";
+            return "div";
         case Mnemonic::IDIV:
-            return "IDIV";
+            return "idiv";
         case Mnemonic::INC:
-            return "INC";
+            return "inc";
         case Mnemonic::DEC:
-            return "DEC";
+            return "dec";
         case Mnemonic::AND:
-            return "AND";
+            return "and";
         case Mnemonic::OR:
-            return "OR";
+            return "or";
         case Mnemonic::XOR:
-            return "XOR";
+            return "xor";
         case Mnemonic::NOT:
-            return "NOT";
+            return "not";
         case Mnemonic::NEG:
-            return "NEG";
+            return "neg";
         case Mnemonic::CMP:
-            return "CMP";
+            return "cmp";
         case Mnemonic::TEST:
-            return "TEST";
+            return "test";
         case Mnemonic::SAL:
-            return "SAL";
+            return "sal";
         case Mnemonic::SHL:
-            return "SHL";
+            return "shl";
         case Mnemonic::SAR:
-            return "SAR";
+            return "sar";
         case Mnemonic::SHR:
-            return "SHR";
+            return "shr";
         case Mnemonic::RCL:
-            return "RCL";
+            return "rcl";
         case Mnemonic::RCR:
-            return "RCR";
+            return "rcr";
         case Mnemonic::ROL:
-            return "ROL";
+            return "rol";
         case Mnemonic::ROR:
-            return "ROR";
+            return "ror";
         case Mnemonic::JMP:
-            return "JMP";
+            return "jmp";
         case Mnemonic::LOOP:
-            return "LOOP";
+            return "loop";
         case Mnemonic::JZ:
-            return "JZ";
+            return "jz";
         case Mnemonic::JNZ:
-            return "JNZ";
+            return "jnz";
         case Mnemonic::JA:
-            return "JA";
+            return "ja";
         case Mnemonic::JAE:
-            return "JAE";
+            return "jae";
         case Mnemonic::JB:
-            return "JB";
+            return "jb";
         case Mnemonic::JBE:
-            return "JBE";
+            return "jbe";
         case Mnemonic::JG:
-            return "JG";
+            return "jg";
         case Mnemonic::JGE:
-            return "JGE";
+            return "jge";
         case Mnemonic::JL:
-            return "JL";
+            return "jl";
         case Mnemonic::JLE:
-            return "JLE";
+            return "jle";
         case Mnemonic::JP:
-            return "JP";
+            return "jp";
         case Mnemonic::JNP:
-            return "JNP";
+            return "jnp";
         case Mnemonic::JO:
-            return "JO";
+            return "jo";
         case Mnemonic::JNO:
-            return "JNO";
+            return "jno";
         case Mnemonic::JS:
-            return "JS";
+            return "js";
         case Mnemonic::JC:
-            return "JC";
+            return "jc";
         case Mnemonic::JCXZ:
-            return "JCXZ";
+            return "jcxz";
         case Mnemonic::JECXZ:
-            return "JECXZ";
+            return "jecxz";
         case Mnemonic::CALL:
-            return "CALL";
+            return "call";
         case Mnemonic::RET:
-            return "RET";
+            return "ret";
         case Mnemonic::PUSH:
-            return "PUSH";
+            return "push";
         case Mnemonic::POP:
-            return "POP";
+            return "pop";
         case Mnemonic::MOVSB:
-            return "MOVSB";
+            return "movsb";
         case Mnemonic::MOVSW:
-            return "MOVSW";
+            return "movsw";
         case Mnemonic::MOVSD:
-            return "MOVSD";
+            return "movsd";
         case Mnemonic::REP:
-            return "REP";
+            return "rep";
         case Mnemonic::REPE:
-            return "REPE";
+            return "repe";
         case Mnemonic::REPNE:
-            return "REPNE";
+            return "repne";
         case Mnemonic::CLD:
-            return "CLD";
+            return "cld";
         case Mnemonic::STD:
-            return "STD";
+            return "std";
         case Mnemonic::LODSB:
-            return "LODSB";
+            return "lodsb";
         case Mnemonic::LODSW:
-            return "LODSW";
+            return "lodsw";
         case Mnemonic::LODSD:
-            return "LODSD";
+            return "lodsd";
         case Mnemonic::STOSB:
-            return "STOSB";
+            return "stosb";
         case Mnemonic::STOSW:
-            return "STOSW";
+            return "stosw";
         case Mnemonic::STOSD:
-            return "STOSD";
+            return "stosd";
         case Mnemonic::SCASB:
-            return "SCASB";
+            return "scasb";
         case Mnemonic::SCASW:
-            return "SCASW";
+            return "scasw";
         case Mnemonic::SCASD:
-            return "SCASD";
+            return "scasd";
         case Mnemonic::CMPSB:
-            return "CMPSB";
+            return "cmpsb";
         case Mnemonic::CMPSW:
-            return "CMPSW";
+            return "cmpsw";
         case Mnemonic::CMPSD:
-            return "CMPSD";
+            return "cmpsd";
         case Mnemonic::IN:
-            return "IN";
+            return "in";
         case Mnemonic::OUT:
-            return "OUT";
+            return "out";
         case Mnemonic::INSB:
-            return "INSB";
+            return "insb";
         case Mnemonic::INSW:
-            return "INSW";
+            return "insw";
         case Mnemonic::INSD:
-            return "INSD";
+            return "insd";
         case Mnemonic::OUTSB:
-            return "OUTSB";
+            return "outsb";
         case Mnemonic::OUTSW:
-            return "OUTSW";
+            return "outsw";
         case Mnemonic::OUTSD:
-            return "OUTSD";
+            return "outsd";
         case Mnemonic::CBW:
-            return "CBW";
+            return "cbw";
         case Mnemonic::CWD:
-            return "CWD";
+            return "cwd";
         case Mnemonic::CWDE:
-            return "CWDE";
+            return "cwde";
+        case Mnemonic::CDQ:
+            return "cdq";
         case Mnemonic::CDQE:
-            return "CDQE";
+            return "cdqe";
+        case Mnemonic::CQO:
+            return "cqo";
         case Mnemonic::INT21:
-            return "INT21";
+            return "int21";
         case Mnemonic::LOCK:
-            return "LOCK";
+            return "lock";
         case Mnemonic::ENTER:
-            return "ENTER";
+            return "enter";
         case Mnemonic::LEAVE:
-            return "LEAVE";
+            return "leave";
         case Mnemonic::NOP:
-            return "NOP";
+            return "nop";
         case Mnemonic::UD2:
-            return "UD2";
+            return "ud2";
         case Mnemonic::CPUID:
-            return "CPUID";
+            return "cpuid";
         case Mnemonic::XCHG:
-            return "XCHG";
+            return "xchg";
         case Mnemonic::STC:
-            return "STC";
+            return "stc";
         case Mnemonic::CLC:
-            return "CLC";
+            return "clc";
         default:
-            return "UNKNOWN";
+            return "unknown";
     }
 }
 
