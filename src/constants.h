@@ -22,6 +22,7 @@ enum class Operand {
     rm64,
     reg,
     sreg,
+    m,
     al,
     ax,
     eax,
@@ -31,6 +32,40 @@ enum class Operand {
     moffs32,
     moffs64
 };
+
+inline bool isA_REG(Operand operand) {
+    return operand == Operand::al || operand == Operand::ax ||
+           operand == Operand::eax || operand == Operand::rax;
+}
+
+inline bool isRM(Operand operand) {
+    return operand == Operand::rm8 || operand == Operand::rm16 ||
+           operand == Operand::rm32 || operand == Operand::rm64;
+}
+
+inline bool isREG(Operand operand) {
+    return operand == Operand::reg8 || operand == Operand::reg16 ||
+           operand == Operand::reg32 || operand == Operand::reg64;
+}
+
+inline bool is8Bit(Operand operand) {
+    return operand == Operand::rm8 || operand == Operand::reg8;
+}
+
+inline bool is16Bit(Operand operand) {
+    return operand == Operand::rm16 || operand == Operand::reg16;
+}
+
+inline bool is32Bit(Operand operand) {
+    return operand == Operand::rm32 || operand == Operand::reg32;
+}
+
+inline bool is64Bit(Operand operand) {
+    return operand == Operand::rm64 || operand == Operand::reg64;
+}
+
+
+
 
 enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
 
@@ -43,6 +78,9 @@ enum class Prefix {
 
 enum class Mnemonic {
     MOV,
+    MOVSX,
+    MOVSXD,
+    MOVZX,
     LEA,
     ADD,
     ADC,
@@ -353,10 +391,12 @@ enum class Registers {
     SIB
 };
 
+/*
 const std::unordered_map<int, std::string> id2register = {
     {0, "RAX"},  {1, "RCX"},  {2, "RDX"},  {3, "RBX"}, {4, "RSP"},  {5, "RBP"},
     {6, "RSI"},  {7, "RDI"},  {8, "R8"},   {9, "R9"},  {10, "R10"}, {11, "R11"},
     {12, "R12"}, {13, "R13"}, {14, "R14"}, {15, "R15"}};
+*/
 
 const std::unordered_map<std::string, InstructionCategory>
     instructionCategories = {

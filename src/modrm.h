@@ -55,7 +55,7 @@ struct ModRM {
         regByte = (modrmByte >> 3) & 0x7;
         modByte = (modrmByte >> 6) & 0x3;
 
-        reg = id2register.at(regByte + (rexb ? 0 : 8));
+        reg = REGISTERS64.at(regByte + (rexb ? 0 : 8));
 
         std::string baseReg = reg;
         if (modByte < 3 && rmByte == 4) {
@@ -121,10 +121,10 @@ struct SIB {
                     baseReg = rexb ? "RBP + disp32" : "R13 + disp32";
             }
         } else {
-            baseReg = id2register.at(baseByte + (rexb ? 0 : 8));
+            baseReg = REGISTERS64.at(baseByte + (rexb ? 0 : 8));
         }
 
-        indexReg = id2register.at(indexByte + (rexb ? 0 : 8));
+        indexReg = REGISTERS64.at(indexByte + (rexb ? 0 : 8));
         scale = SCALE_FACTOR.at(scaleByte);
 
         address = baseReg + " + " + indexReg + " * " + std::to_string(scale);

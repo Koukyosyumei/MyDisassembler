@@ -211,19 +211,30 @@ struct X86Decoder {
 
             // if (operand == nullptr) break;
 
-            if (operand == Operand::eax) {
-                decodedTranslatedValue = "eax";
-            } else if (operand == Operand::rax) {
-                decodedTranslatedValue = "rax";
-            } else if (operand == Operand::rm || operand == Operand::reg) {
-                if (hasModrm(opEnc))
-                    if (operand == Operand::rm)
+            if (isA_REG(operand)) {
+                decodedTranslatedValue = to_string(operand);
+            } else if (isRM(operand) || isREG(operand)) {
+                if (hasModrm(opEnc)) {
+                    if (isRM(operand)) {
                         decodedTranslatedValue = modrm.addressingMode;
-                    else
+                    } else {
                         decodedTranslatedValue = modrm.reg;
-                else
-                    decodedTranslatedValue =
-                        id2register.at(std::stoi(remOps[0]));
+                    }
+                } else {
+                    if (is8Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS8.at(std::stoi(remOps[0]));
+                    } else if (is16Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS16.at(std::stoi(remOps[0]));
+                    } else if (is32Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS32.at(std::stoi(remOps[0]));
+                    } else if (is64Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS64.at(std::stoi(remOps[0]));
+                    }
+                }
             } else if (operand == Operand::imm32) {
                 imm = std::vector<uint8_t>(
                     state->objectSource.begin() + curIdx,

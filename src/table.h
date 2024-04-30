@@ -892,6 +892,95 @@ const std::unordered_map<
         {{Prefix::REXW, Mnemonic::MOV, u2d("\xC7")},
          {OpEnc::MI, {"id"}, {Operand::rm64, Operand::imm32}}},
 
+        // CBW
+        {{Prefix::P66, Mnemonic::CBW, u2d("\x98")}, {OpEnc::NP, {}, {}}},
+
+        // CWDE
+        {{Prefix::NONE, Mnemonic::CWDE, u2d("\x98")}, {OpEnc::NP, {}, {}}},
+
+        // CDQE
+        {{Prefix::REXW, Mnemonic::CDQE, u2d("\x98")}, {OpEnc::NP, {}, {}}},
+
+        // CWD
+        {{Prefix::P66, Mnemonic::CWD, u2d("\x99")}, {OpEnc::NP, {}, {}}},
+
+        // CDQ
+        {{Prefix::NONE, Mnemonic::CDQ, u2d("\x99")}, {OpEnc::NP, {}, {}}},
+
+        // CQO
+        {{Prefix::REXW, Mnemonic::CQO, u2d("\x99")}, {OpEnc::NP, {}, {}}},
+
+        // MOVSX
+        {{Prefix::P66, Mnemonic::MOVSX, u2d("\x0F\xBE")},
+         {OpEnc::RM, {"/r"}, {Operand::reg16, Operand::rm8}}},
+        {{Prefix::NONE, Mnemonic::MOVSX, u2d("\x0F\xBE")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm8}}},
+        {{Prefix::REX, Mnemonic::MOVSX, u2d("\x0F\xBE")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm8}}},
+        {{Prefix::NONE, Mnemonic::MOVSX, u2d("\x0F\xBF")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm16}}},
+        {{Prefix::REXW, Mnemonic::MOVSX, u2d("\x0F\xBF")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm16}}},
+        {{Prefix::REXW, Mnemonic::MOVSXD, u2d("\x63")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm32}}},
+        {{Prefix::P66, Mnemonic::MOVZX, u2d("\x0F\xB6")},
+         {OpEnc::RM, {"/r"}, {Operand::reg16, Operand::rm8}}},
+        {{Prefix::NONE, Mnemonic::MOVZX, u2d("\x0F\xB6")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm8}}},
+        {{Prefix::REX, Mnemonic::MOVZX, u2d("\x0F\xB6")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm8}}},
+        {{Prefix::NONE, Mnemonic::MOVZX, u2d("\x0F\xB7")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm16}}},
+        {{Prefix::REXW, Mnemonic::MOVZX, u2d("\x0F\xB7")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm32}}},
+
+        // LEA
+        {{Prefix::P66, Mnemonic::LEA, u2d("\x8D")},
+         {OpEnc::RM, {"/r"}, {Operand::reg16, Operand::m}}},
+        {{Prefix::NONE, Mnemonic::LEA, u2d("\x8D")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::m}}},
+        {{Prefix::REXW, Mnemonic::LEA, u2d("\x8D")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::m}}},
+        
+        /*
+        // BSWAP
+        {{Prefix::NONE, Mnemonic::BSWAP, u2d("\x0F\xC8"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::reg32}}},
+        {{Prefix::REXW, Mnemonic::BSWAP, u2d("\x0F\xC8"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::reg64}}},
+
+        // XCHG AX, r16
+        {{Prefix::P66, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rw()},
+         {OpEnc::NP, {"rw"}, {Operand::ax, Operand::reg16}}},
+        {{Prefix::P66, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rw()},
+         {OpEnc::NP, {"rw"}, {Operand::reg16, Operand::ax}}},
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::eax, Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::reg32, Operand::eax}}},
+        {{Prefix::REXW, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::rax, Operand::reg64}}},
+        {{Prefix::REXW, Mnemonic::XCHG, u2d("\x90"), Opcode_plus_rd()},
+         {OpEnc::NP, {"rd"}, {Operand::reg64, Operand::rax}}},
+        */
+
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x86")},
+         {OpEnc::RM, {"/r"}, {Operand::rm8, Operand::reg8}}},
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x86")},
+         {OpEnc::RM, {"/r"}, {Operand::reg8, Operand::rm8}}},
+        {{Prefix::P66, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::rm16, Operand::reg16}}},
+        {{Prefix::P66, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::reg16, Operand::rm16}}},
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::rm32, Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm32}}},
+        {{Prefix::REXW, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::rm64, Operand::reg64}}},
+        {{Prefix::REXW, Mnemonic::XCHG, u2d("\x87")},
+         {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::rm64}}},
+
         // NOP
         {{Prefix::NONE, Mnemonic::NOP, u2d("\x90")}, {OpEnc::NP, {}, {}}},
 
