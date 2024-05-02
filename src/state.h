@@ -54,9 +54,10 @@ struct DecoderState {
         if (!runningErrorIdx.empty()) {
             size_t startErr = runningErrorIdx[0];
             size_t byteLenErr = runningErrorIdx.size();
-            instructions[std::make_pair(startErr, byteLenErr)] =
+            instructions[std::make_pair(startErr, startErr + byteLenErr)] =
                 UNKNOWN_INSTRUCTION;
-            instructionKeys.push_back(std::make_pair(startErr, byteLenErr));
+            instructionKeys.push_back(
+                std::make_pair(startErr, startErr + byteLenErr));
             runningErrorIdx.clear();
         }
 
@@ -104,8 +105,9 @@ struct DecoderState {
             }
         }
 
-        instructions[std::make_pair(startIdx, byteLen)] = instruction;
-        instructionKeys.push_back(std::make_pair(startIdx, byteLen));
+        instructions[std::make_pair(startIdx, startIdx + byteLen)] =
+            instruction;
+        instructionKeys.push_back(std::make_pair(startIdx, startIdx + byteLen));
         instructionLens[startIdx] = byteLen;
 
         return labelAddr;

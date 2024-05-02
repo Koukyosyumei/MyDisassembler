@@ -16,15 +16,13 @@ TEST(decoder, ONE_BYTE) {
     X86Decoder decoder(&state);
 
     state._currentIdx = 0;
-    std::pair<std::string, uint64_t> res_nop =
-        decoder.decodeSingleInstruction();
-    ASSERT_EQ(res_nop.first, "nop");
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "nop");
 
     decoder.init();
     state._currentIdx = 1;
-    std::pair<std::string, uint64_t> res_ret =
-        decoder.decodeSingleInstruction();
-    ASSERT_EQ(res_ret.first, "ret");
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "ret");
 }
 
 TEST(decoder, ONE_BYTE_IMM) {
@@ -36,36 +34,28 @@ TEST(decoder, ONE_BYTE_IMM) {
     X86Decoder decoder(&state);
 
     state._currentIdx = 0;
-    std::pair<std::string, uint64_t> res_nop =
-        decoder.decodeSingleInstruction();
-    ASSERT_EQ(res_nop.first, "mov");
-    // TODO: FIX the range
-    ASSERT_EQ(state.instructions[std::make_pair(0, 6)], " mov  eax 0x11223344");
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 5)], " mov  eax 0x11223344");
 
     state._currentIdx = 5;
     decoder.init();
-    res_nop = decoder.decodeSingleInstruction();
-
-    for (auto& item : state.instructions) {
-        std::cout << item.first.first << "-" << item.first.second << ": "
-                  << item.second << std::endl;
-    }
-
-    ASSERT_EQ(res_nop.first, "mov");
-    // TODO: FIX the range
-    ASSERT_EQ(state.instructions[std::make_pair(0, 6)], " mov  ecx 0x11223344");
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(5, 10)],
+              " mov  ecx 0x11223344");
 
     state._currentIdx = 10;
     decoder.init();
-    res_nop = decoder.decodeSingleInstruction();
-    ASSERT_EQ(res_nop.first, "add");
-    // TODO: FIX the range
-    ASSERT_EQ(state.instructions[std::make_pair(0, 6)], " add  eax 0x11223344");
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(10, 15)],
+              " add  eax 0x11223344");
 
     state._currentIdx = 15;
     decoder.init();
-    res_nop = decoder.decodeSingleInstruction();
-    ASSERT_EQ(res_nop.first, "sub");
-    // TODO: FIX the range
-    ASSERT_EQ(state.instructions[std::make_pair(0, 6)], " sub  eax 0x11223344");
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "sub");
+    ASSERT_EQ(state.instructions[std::make_pair(15, 20)],
+              " sub  eax 0x11223344");
 }

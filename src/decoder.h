@@ -167,7 +167,6 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            std::cout << "update disp8!!" << std::endl;
             disp8 = state->objectSource[curIdx];
             hasDisp8 = true;
             instructionLen += 1;
@@ -192,8 +191,6 @@ struct X86Decoder {
         // ############### Initialize ##############################
         init();
         startIdx = curIdx = state->getCurIdx();
-        std::cout << startIdx << " " << curIdx << std::endl;
-        instructionLen = 1;
 
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
@@ -287,7 +284,6 @@ struct X86Decoder {
                 // sib.address
             }
 
-            // std::cout << "disp8!!! " << disp8 << std::endl;
             if (hasDisp8) {
                 decodedTranslatedValue += " disp8=" + std::to_string(disp8);
             }
@@ -311,8 +307,6 @@ struct X86Decoder {
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
-        std::cout << assemblyInstructionStr << std::endl;
-
         uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
                                                  assemblyInstructionStr);
 
