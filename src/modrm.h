@@ -196,10 +196,10 @@ struct SIB {
 
         if (modByte == 0 && baseByte == 5 && indexByte == 4) {
             address = addrBaseReg;
-        } else if (indexByte == 4 && (!rex.rexB)) {
+        } else if (indexByte == 4 && (!rex.rexX)) {
             address = "[" + addrBaseReg + "]";
         } else {
-            indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
+            indexReg = REGISTERS64.at(indexByte + (rex.rexX ? 8 : 0));
             scale = SCALE_FACTOR.at(scaleByte);
             address = "[" + addrBaseReg + " + " + indexReg + " * " +
                       std::to_string(scale) + "]";

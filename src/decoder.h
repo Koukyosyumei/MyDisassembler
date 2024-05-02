@@ -121,11 +121,27 @@ struct X86Decoder {
         instructionLen += 1;
         curIdx += 1;
 
-        std::cout << (int)prefix << " " << opcodeByte << std::endl;
+        std::cout << (int)prefix << " OPOP " << opcodeByte << std::endl;
 
         // (prefix, opcode) -> (reg, mnemonic)
-        std::unordered_map<int, Mnemonic> reg2mnem =
-            OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
+        std::unordered_map<int, Mnemonic> reg2mnem;
+        if (OP_LOOKUP.find(std::make_pair(prefix, opcodeByte)) !=
+            OP_LOOKUP.end()) {
+            reg2mnem = OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
+        } else if (prefix == Prefix::REX &&
+                   OP_LOOKUP.find(std::make_pair(Prefix::NONE, opcodeByte)) !=
+                       OP_LOOKUP.end()) {
+            reg2mnem = OP_LOOKUP.at(std::make_pair(Prefix::NONE, opcodeByte));
+            prefix = Prefix::NONE;
+        } else {
+            throw std::runtime_error(
+                "Unknown combination of the prefix and the opcodeByte\n");
+        }
+
+        for (auto t : reg2mnem) {
+            std::cout << t.first << ": " << to_string(t.second) << ",";
+        }
+        std::cout << std::endl;
 
         // We sometimes need reg of modrm to determine the opecode
         // e.g. 83 /4 -> AND
@@ -138,7 +154,7 @@ struct X86Decoder {
 
         if (modrmByte >= 0) {
             int reg = getRegVal(modrmByte);
-            std::cout << reg << std::endl;
+            std::cout << "reg " << reg << std::endl;
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
                                                               : reg2mnem[-1];
         } else {
@@ -146,6 +162,7 @@ struct X86Decoder {
         }
 
         assemblyInstruction.push_back(to_string(mnemonic));
+        std::cout << 888 << std::endl;
         std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
         opEnc = std::get<0>(res);

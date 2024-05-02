@@ -455,7 +455,7 @@ TEST(decoder, MODRM_OPCODE) {
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "xor");
     ASSERT_EQ(state.instructions[std::make_pair(18, 21)], " xor  eax 0x01");
-    
+
     state._currentIdx = 21;
     decoder.init();
     res = decoder.decodeSingleInstruction();
@@ -481,5 +481,32 @@ TEST(decoder, REXW) {
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(3, 7)], " add  rax 0x01");
+}
+
+TEST(decoder, REXRXB) {
+    std::vector<unsigned char> obj = {
+        0x44, 0x01, 0x04, 0x91,  // add eax ecx
+        0x42, 0x01, 0x04, 0x91,  // mov
+        0x41, 0x01, 0x04, 0x91   // add
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 4)], " add  [rcx + rdx * 4] r8d");
+
+    state._currentIdx = 4;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(4, 8)], " add  [rcx + r10 * 4] eax");
+    
+    state._currentIdx = 8;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(8, 12)], " add  [r9 + rdx * 4] eax");
 }
 
