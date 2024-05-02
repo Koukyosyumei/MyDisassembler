@@ -463,3 +463,23 @@ TEST(decoder, MODRM_OPCODE) {
     ASSERT_EQ(state.instructions[std::make_pair(21, 24)], " cmp  eax 0x01");
 }
 
+TEST(decoder, REXW) {
+    std::vector<unsigned char> obj = {
+        0x83, 0xc0, 0x01,        // add eax ecx
+        0x48, 0x83, 0xc0, 0x01,  // mov
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 3)], " add  eax 0x01");
+
+    state._currentIdx = 3;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(3, 7)], " add  rax 0x01");
+}
+
