@@ -357,13 +357,15 @@ TEST(decoder, MODRM_SIB_RSP) {
     state._currentIdx = 0;
     std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "mov");
-    ASSERT_EQ(state.instructions[std::make_pair(0, 3)], " mov  edx [rax + rcx * 1]");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 3)],
+              " mov  edx [rax + rcx * 1]");
 
     state._currentIdx = 3;
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "mov");
-    ASSERT_EQ(state.instructions[std::make_pair(3, 7)], " mov  edx [1 + rax + rcx * 1]");
+    ASSERT_EQ(state.instructions[std::make_pair(3, 7)],
+              " mov  edx [1 + rax + rcx * 1]");
 
     state._currentIdx = 7;
     decoder.init();
@@ -376,8 +378,7 @@ TEST(decoder, MODRM_SIB_RSP) {
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "mov");
-    ASSERT_EQ(state.instructions[std::make_pair(10, 13)],
-              " mov  edx [rsp]");
+    ASSERT_EQ(state.instructions[std::make_pair(10, 13)], " mov  edx [rsp]");
 }
 
 TEST(decoder, ADD_IMM) {
@@ -398,5 +399,67 @@ TEST(decoder, ADD_IMM) {
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(2, 5)], " add  eax 0x01");
+}
+
+TEST(decoder, MODRM_OPCODE) {
+    std::vector<unsigned char> obj = {
+        0x83, 0xc0, 0x01,  // add eax ecx
+        0x83, 0xc8, 0x01,  // mov
+        0x83, 0xd0, 0x01,  // add eax ecx
+        0x83, 0xd8, 0x01,  // mov
+        0x83, 0xe0, 0x01,  // add eax ecx
+        0x83, 0xe8, 0x01,  // mov
+        0x83, 0xf0, 0x01,  // add eax ecx
+        0x83, 0xf8, 0x01,  // mov
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 3)], " add  eax 0x01");
+
+    state._currentIdx = 3;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "or");
+    ASSERT_EQ(state.instructions[std::make_pair(3, 6)], " or  eax 0x01");
+
+    state._currentIdx = 6;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "adc");
+    ASSERT_EQ(state.instructions[std::make_pair(6, 9)], " adc  eax 0x01");
+
+    state._currentIdx = 9;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "sbb");
+    ASSERT_EQ(state.instructions[std::make_pair(9, 12)], " sbb  eax 0x01");
+
+    state._currentIdx = 12;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "and");
+    ASSERT_EQ(state.instructions[std::make_pair(12, 15)], " and  eax 0x01");
+
+    state._currentIdx = 15;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "sub");
+    ASSERT_EQ(state.instructions[std::make_pair(15, 18)], " sub  eax 0x01");
+
+    state._currentIdx = 18;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "xor");
+    ASSERT_EQ(state.instructions[std::make_pair(18, 21)], " xor  eax 0x01");
+    
+    state._currentIdx = 21;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "cmp");
+    ASSERT_EQ(state.instructions[std::make_pair(21, 24)], " cmp  eax 0x01");
 }
 
