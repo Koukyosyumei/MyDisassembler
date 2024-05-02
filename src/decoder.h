@@ -105,6 +105,7 @@ struct X86Decoder {
             rex = REX(state->objectSource[curIdx]);
             instructionLen += 1;
             curIdx += 1;
+            std::cout << "HAS REX" << std::endl;
 
             if (rex.rexW) {
                 prefix = Prefix::REXW;
@@ -120,6 +121,8 @@ struct X86Decoder {
         instructionLen += 1;
         curIdx += 1;
 
+        std::cout << (int)prefix << " " << opcodeByte << std::endl;
+
         // (prefix, opcode) -> (reg, mnemonic)
         std::unordered_map<int, Mnemonic> reg2mnem =
             OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
@@ -131,8 +134,11 @@ struct X86Decoder {
             modrmByte = state->objectSource[curIdx];
         }
 
+        std::cout << (int)prefix << " 0000000 " << opcodeByte << std::endl;
+
         if (modrmByte >= 0) {
-            uint8_t reg = getRegVal(modrmByte);
+            int reg = getRegVal(modrmByte);
+            std::cout << reg << std::endl;
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
                                                               : reg2mnem[-1];
         } else {

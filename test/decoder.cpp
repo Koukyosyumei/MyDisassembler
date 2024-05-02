@@ -380,3 +380,23 @@ TEST(decoder, MODRM_SIB_RSP) {
               " mov  edx [rsp]");
 }
 
+TEST(decoder, ADD_IMM) {
+    std::vector<unsigned char> obj = {
+        0x01, 0xc0,        // add eax ecx
+        0x83, 0xc0, 0x01,  // mov
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 2)], " add  eax eax");
+
+    state._currentIdx = 2;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(2, 5)], " add  eax 0x01");
+}
+
