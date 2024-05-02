@@ -194,10 +194,14 @@ struct SIB {
             }
         }
 
-        indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
-        scale = SCALE_FACTOR.at(scaleByte);
-        address = "[" + addrBaseReg + " + " + indexReg + " * " +
-                  std::to_string(scale) + "]";
+        if (modByte == 0 && baseByte == 5 && indexByte == 4) {
+            address = addrBaseReg;
+        } else {
+            indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
+            scale = SCALE_FACTOR.at(scaleByte);
+            address = "[" + addrBaseReg + " + " + indexReg + " * " +
+                      std::to_string(scale) + "]";
+        }
         return address;
     }
 };

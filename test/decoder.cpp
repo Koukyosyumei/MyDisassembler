@@ -123,7 +123,7 @@ TEST(decoder, SEVERAL_ADD) {
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(2, 9)],
-              " add  [0x00000000 + rsp * 1] eax");
+              " add  0x00000000 eax");
 
     state._currentIdx = 9;
     decoder.init();
@@ -300,8 +300,7 @@ TEST(decoder, MODRM_MOD_DISP) {
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "mov");
-    ASSERT_EQ(state.instructions[std::make_pair(2, 5)],
-              " mov  ecx [rax + 1]");
+    ASSERT_EQ(state.instructions[std::make_pair(2, 5)], " mov  ecx [rax + 1]");
 
     state._currentIdx = 5;
     decoder.init();
@@ -309,5 +308,40 @@ TEST(decoder, MODRM_MOD_DISP) {
     ASSERT_EQ(res.first, "mov");
     ASSERT_EQ(state.instructions[std::make_pair(5, 11)],
               " mov  ecx [rax + 0x00000100]");
+}
+
+TEST(decoder, MODRM_MOD00_RM101) {
+    std::vector<unsigned char> obj = {
+        0x8b, 0x4d, 0x00,                    // add eax ecx
+        0x8b, 0x4d, 0x01,                    // mov
+        0x8b, 0x8d, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
+        0x8b, 0x0c, 0x25,  0x00, 0x00, 0x08, 0x00};
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 3)], " mov  ecx [rbp + 0]");
+
+    state._currentIdx = 3;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(3, 6)], " mov  ecx [rbp + 1]");
+
+    state._currentIdx = 6;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(6, 12)],
+              " mov  ecx [rbp + 0x00000100]");
+    
+    state._currentIdx = 12;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(12, 19)],
+              " mov  ecx 0x00080000");
 }
 
