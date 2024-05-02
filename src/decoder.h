@@ -107,10 +107,8 @@ struct X86Decoder {
             curIdx += 1;
 
             if (rex.rexW) {
-                std::cout << "Set REXW" << std::endl;
                 prefix = Prefix::REXW;
             } else {
-                std::cout << "Set REX" << std::endl;
                 prefix = Prefix::REX;
             }
         }
@@ -151,7 +149,6 @@ struct X86Decoder {
 
     void parseModRM() {
         if (hasModrm(opEnc)) {
-            std::cout << "Parse MODRM" << std::endl;
             if (modrmByte < 0) {
                 throw std::runtime_error(
                     "Expected ModRM byte but there aren't any bytes left.");
@@ -173,7 +170,6 @@ struct X86Decoder {
                     "Expected SIB byte but there aren't any bytes left.");
             }
             sib = SIB(sibByte, modrm.modByte, rex);
-            std::cout << "SIB p1 " << std::endl;
             instructionLen += 1;
             curIdx += 1;
         }
@@ -188,7 +184,6 @@ struct X86Decoder {
             hasDisp8 = true;
             instructionLen += 1;
             curIdx += 1;
-            std::cout << "a - " << instructionLen << " " << 1 << std::endl;
         }
 
         if ((hasModrm(opEnc) && modrm.hasDisp32) ||
@@ -210,7 +205,6 @@ struct X86Decoder {
             hasDisp32 = true;
             instructionLen += 4;
             curIdx += 4;
-            std::cout << "a - " << instructionLen << " " << 4 << std::endl;
         }
     }
 
@@ -223,19 +217,12 @@ struct X86Decoder {
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
 
         // parsePrefixInstructions();
-        std::cout << 1 << std::endl;
         parsePrefix();
-        std::cout << 2 << std::endl;
         parseREX();
-        std::cout << 3 << std::endl;
         parseOpecode();
-        std::cout << 4 << std::endl;
         parseModRM();
-        std::cout << 5 << std::endl;
         parseSIB();
-        std::cout << 6 << std::endl;
         parseAddressOffset();
-        std::cout << 7 << std::endl;
 
         // ############### Process Operands ################
         std::vector<uint8_t> imm;

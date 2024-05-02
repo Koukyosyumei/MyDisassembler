@@ -62,7 +62,6 @@ struct ModRM {
         regByte = (modrmByte >> 3) & 0x7;
         modByte = (modrmByte >> 6) & 0x3;
         hasSib = false;
-        std::cout << rmByte << " " << regByte << " " << modByte << std::endl;
 
         if (modByte < 3 && rmByte == 4) {
             hasSib = true;
@@ -94,9 +93,6 @@ struct ModRM {
             hasDisp8 = false;
             hasDisp32 = true;
         }
-
-        std::cout << rmByte << " - " << regByte << " - " << modByte << " "
-                  << std::endl;
     }
 
     std::string getReg(Operand operand) {
@@ -120,31 +116,22 @@ struct ModRM {
         std::string addressingMode;
         switch (modByte) {
             case 0: {
-                std::cout << 1234 << std::endl;
                 addressingMode = "[" + addrBaseReg + "]";
-                std::cout << addressingMode << std::endl;
                 break;
             }
             case 1: {
-                std::cout << 1237 << std::endl;
                 addressingMode = "[" + addrBaseReg + " + " + disp8 + "]";
                 break;
             }
             case 2: {
-                std::cout << 1236 << std::endl;
                 addressingMode = "[" + addrBaseReg + " + " + disp32 + "]";
                 break;
             }
             case 3: {
-                std::cout << 1235 << std::endl;
                 addressingMode = addrBaseReg;
                 break;
             }
         }
-
-        std::cout << modByte << " " << addressingMode << std::endl;
-        std::cout << addressingMode << " ? " << hasDisp8 << " ? " << hasDisp32
-                  << std::endl;
 
         if (modByte == 0 && rmByte == 5) {
             addressingMode = "[RIP + " + disp32 + "]";
@@ -209,7 +196,6 @@ struct SIB {
 
         indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
         scale = SCALE_FACTOR.at(scaleByte);
-        std::cout << "construct SIB address" << std::endl;
         address = "[" + addrBaseReg + " + " + indexReg + " * " +
                   std::to_string(scale) + "]";
         return address;

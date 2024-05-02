@@ -103,9 +103,9 @@ TEST(decoder, SEVERAL_ADD) {
     std::vector<unsigned char> obj = {
         0x01, 0xc1,  // add eax ecx
         0x01, 0x4,  0x25, 0x00,
-        0x00, 0x00, 0x00,         // add  eax 0x0
-        0x01, 0x00,               // add  eax (rax)
-        0x01, 0x04, 0x00,         // add  rax (rax, rax, 1)
+        0x00, 0x00, 0x00,        // add  eax 0x0
+        0x01, 0x00,              // add  eax (rax)
+        0x01, 0x04, 0x00,        // add  rax (rax, rax, 1)
         0x01, 0x44, 0x00, 0x01,  // add  eax 0x1 (rax, rax, 1)
         0x01, 0x84, 0x00, 0x00,
         0x80, 0x00, 0x00  // add  eax, 0x8000(rax, rax, 1)
@@ -125,13 +125,11 @@ TEST(decoder, SEVERAL_ADD) {
     ASSERT_EQ(state.instructions[std::make_pair(2, 9)],
               " add  [0x00000000 + rsp * 1] eax");
 
-    std::cout << 256 << std::endl;
     state._currentIdx = 9;
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(9, 11)], " add  [rax] eax");
-    std::cout << 123 << std::endl;
 
     state._currentIdx = 11;
     decoder.init();
@@ -139,18 +137,149 @@ TEST(decoder, SEVERAL_ADD) {
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(11, 14)],
               " add  [rax + rax * 1] eax");
-    
+
     state._currentIdx = 14;
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(14, 18)],
               " add  [1 + rax + rax * 1] eax");
-    
+
     state._currentIdx = 18;
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
     ASSERT_EQ(state.instructions[std::make_pair(18, 25)],
               " add  [0x00008000 + rax + rax * 1] eax");
+}
+
+TEST(decoder, MODRM_REG) {
+    std::vector<unsigned char> obj = {
+        0x01, 0x00,  // add rax eax
+        0x01, 0x08,  // add rax ecx
+        0x01, 0x10,  // add rax edx
+        0x01, 0x18,  // add rax ebx
+        0x01, 0x20,  // add rax esp
+        0x01, 0x28,  // add rax ebp
+        0x01, 0x30,  // add rax esi
+        0x01, 0x38   // add rax edi
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 2)], " add  [rax] eax");
+
+    state._currentIdx = 2;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(2, 4)], " add  [rax] ecx");
+
+    state._currentIdx = 4;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(4, 6)], " add  [rax] edx");
+
+    state._currentIdx = 6;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(6, 8)], " add  [rax] ebx");
+
+    state._currentIdx = 8;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(8, 10)], " add  [rax] esp");
+
+    state._currentIdx = 10;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(10, 12)], " add  [rax] ebp");
+
+    state._currentIdx = 12;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(12, 14)], " add  [rax] esi");
+
+    state._currentIdx = 14;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(14, 16)], " add  [rax] edi");
+}
+
+TEST(decoder, MODRM_MOD11) {
+    std::vector<unsigned char> obj = {
+        0x01, 0xc0,  // add eax eax
+        0x01, 0xc1,  // add eax ecx
+        0x01, 0xc2,  // add eax edx
+        0x01, 0xc3,  // add eax ebx
+        0x01, 0xc4,  // add eax esp
+        0x01, 0xc5,  // add eax ebp
+        0x01, 0xc6,  // add eax esi
+        0x01, 0xc7,   // add eax edi
+        0x03, 0xc0
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 2)], " add  eax eax");
+
+    state._currentIdx = 2;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(2, 4)], " add  ecx eax");
+
+    state._currentIdx = 4;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(4, 6)], " add  edx eax");
+
+    state._currentIdx = 6;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(6, 8)], " add  ebx eax");
+
+    state._currentIdx = 8;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(8, 10)], " add  esp eax");
+
+    state._currentIdx = 10;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(10, 12)], " add  ebp eax");
+
+    state._currentIdx = 12;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(12, 14)], " add  esi eax");
+
+    state._currentIdx = 14;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(14, 16)], " add  edi eax");
+    
+    state._currentIdx = 16;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "add");
+    ASSERT_EQ(state.instructions[std::make_pair(16, 18)], " add  eax eax");
 }
