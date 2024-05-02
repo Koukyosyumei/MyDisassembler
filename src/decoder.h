@@ -152,13 +152,14 @@ struct X86Decoder {
 
     void parseModRM() {
         if (hasModrm(opEnc)) {
+            std::cout << "Parse MODRM" << std::endl;
             if (modrmByte == 0) {
                 throw std::runtime_error(
                     "Expected ModRM byte but there aren't any bytes left.");
             }
             instructionLen += 1;
             curIdx += 1;
-            modrm = ModRM(modrmByte);
+            modrm = ModRM(modrmByte, rex);
         }
     }
 
@@ -172,7 +173,7 @@ struct X86Decoder {
                 throw std::runtime_error(
                     "Expected SIB byte but there aren't any bytes left.");
             }
-            sib = SIB(sibByte);
+            sib = SIB(sibByte, modrm.modByte, rex);
             instructionLen += 1;
             curIdx += 1;
         }
@@ -231,9 +232,9 @@ struct X86Decoder {
             } else if (isRM(operand) || isREG(operand)) {
                 if (hasModrm(opEnc)) {
                     if (isRM(operand)) {
-                        decodedTranslatedValue = modrm.addressingMode;
+                        decodedTranslatedValue = modrm.getAddrMode(operand);
                     } else {
-                        decodedTranslatedValue = modrm.reg;
+                        decodedTranslatedValue = modrm.getReg(operand);
                     }
                 } else {
                     if (is8Bit(operand)) {
@@ -250,60 +251,28 @@ struct X86Decoder {
                             REGISTERS64.at(std::stoi(remOps[0]));
                     }
                 }
-            } 
-            else if (operand == Operand::imm64) {
-                imm = std::vector<uint8_t>(
-                    state->objectSource.begin() + curIdx,
-                    state->objectSource.begin() + curIdx + 8);
-                std::reverse(imm.begin(), imm.end());
-                instructionLen += 8;
-                curIdx += 8;
-
-                std::stringstream ss;
-                ss << "0x";
-                for (unsigned char x : imm) {
-                    ss << std::hex << std::setw(2) << std::setfill('0')
-                       << static_cast<int>(x);
+                
+                if (hasModrm(opEnc) && modrm.hasSib) {
+                    decodedTranslatedValue = sib.getAddr(
+                        operand, std::to_string(disp8), std::to_string(disp8));
                 }
-                decodedTranslatedValue = ss.str();
-            }
-            else if (operand == Operand::imm32) {
-                imm = std::vector<uint8_t>(
-                    state->objectSource.begin() + curIdx,
-                    state->objectSource.begin() + curIdx + 4);
-                std::reverse(imm.begin(), imm.end());
-                instructionLen += 4;
-                curIdx += 4;
-
-                std::stringstream ss;
-                ss << "0x";
-                for (unsigned char x : imm) {
-                    ss << std::hex << std::setw(2) << std::setfill('0')
-                       << static_cast<int>(x);
+            } else if (isIMM(operand)) {
+                int immSize = 0;
+                if (operand == Operand::imm64) {
+                    immSize = 8;
+                } else if (operand == Operand::imm32) {
+                    immSize = 4;
+                } else if (operand == Operand::imm16) {
+                    immSize = 2;
+                } else if (operand == Operand::imm8) {
+                    immSize = 1;
                 }
-                decodedTranslatedValue = ss.str();
-            } else if (operand == Operand::imm16) {
                 imm = std::vector<uint8_t>(
                     state->objectSource.begin() + curIdx,
-                    state->objectSource.begin() + curIdx + 2);
+                    state->objectSource.begin() + curIdx + immSize);
                 std::reverse(imm.begin(), imm.end());
-                instructionLen += 2;
-                curIdx += 2;
-
-                std::stringstream ss;
-                ss << "0x";
-                for (unsigned char x : imm) {
-                    ss << std::hex << std::setw(2) << std::setfill('0')
-                       << static_cast<int>(x);
-                }
-                decodedTranslatedValue = ss.str();
-            } else if (operand == Operand::imm8) {
-                imm = std::vector<uint8_t>(
-                    state->objectSource.begin() + curIdx,
-                    state->objectSource.begin() + curIdx + 1);
-                std::reverse(imm.begin(), imm.end());
-                instructionLen += 1;
-                curIdx += 1;
+                instructionLen += immSize;
+                curIdx += immSize;
 
                 std::stringstream ss;
                 ss << "0x";
@@ -314,10 +283,7 @@ struct X86Decoder {
                 decodedTranslatedValue = ss.str();
             }
 
-            if (hasModrm(opEnc) && modrm.hasSib) {
-                // sib.address
-            }
-
+            /*
             if (hasDisp8) {
                 decodedTranslatedValue += " disp8=" + std::to_string(disp8);
             }
@@ -325,6 +291,7 @@ struct X86Decoder {
             if (hasDisp32) {
                 decodedTranslatedValue += " disp32=<UNIMPLEMENTED>";
             }
+            */
 
             assemblyOperands.push_back(decodedTranslatedValue);
         }

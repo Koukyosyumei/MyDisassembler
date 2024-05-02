@@ -28,7 +28,7 @@ struct REX {
     bool rexR;
     bool rexW;
 
-    REX() {}
+    REX() : rexB(false), rexX(false), rexR(false), rexW(false) {}
     REX(unsigned char rexByte) {
         rexB = (rexByte & 0x1) == 0x1;
         rexX = (rexByte & 0x2) == 0x2;
@@ -38,9 +38,10 @@ struct REX {
 };
 
 struct ModRM {
-    unsigned char modByte;
-    unsigned char regByte;
-    unsigned char rmByte;
+    REX rex;
+    int modByte;
+    int regByte;
+    int rmByte;
 
     std::string addressingMode;
     std::string reg;
@@ -49,47 +50,85 @@ struct ModRM {
     bool hasDisp32;
     bool hasSib;
 
-    ModRM() {}
-    ModRM(unsigned char modrmByte, bool rexb = false) {
+    ModRM()
+        : modByte(0),
+          regByte(0),
+          rmByte(0),
+          hasDisp8(false),
+          hasDisp32(false),
+          hasSib(false) {}
+    ModRM(unsigned char modrmByte, REX rex) : rex(rex) {
         rmByte = modrmByte & 0x7;
         regByte = (modrmByte >> 3) & 0x7;
         modByte = (modrmByte >> 6) & 0x3;
+        hasSib = false;
 
-        reg = REGISTERS64.at(regByte + (rexb ? 0 : 8));
-
-        std::string baseReg = reg;
         if (modByte < 3 && rmByte == 4) {
-            baseReg = "SIB";
+            hasSib = true;
         }
-
         switch (modByte) {
-            case 0x00: {
-                addressingMode = "[" + baseReg + "]";
+            case 0: {
                 hasDisp8 = false;
                 hasDisp32 = false;
             }
-            case 0x01: {
-                addressingMode = "[" + baseReg + " + disp8]";
+            case 1: {
                 hasDisp8 = true;
                 hasDisp32 = false;
             }
-            case 0x10: {
-                addressingMode = "[" + baseReg + " + disp32]";
+            case 2: {
                 hasDisp8 = false;
                 hasDisp32 = true;
             }
-            case 0x11: {
-                addressingMode = baseReg;
+            case 3: {
                 hasDisp8 = false;
                 hasDisp32 = false;
             }
         }
 
         if (modByte == 0 && rmByte == 5) {
-            addressingMode = "[RIP + disp32]";
             hasDisp8 = false;
             hasDisp32 = true;
         }
+
+        std::cout << rmByte << " - " << regByte << " - " << modByte << " "
+                  << std::endl;
+    }
+
+    std::string getReg(Operand operand) {
+        return operand2register(operand)->at(regByte + (rex.rexR ? 8 : 0));
+    }
+
+    std::string getAddrMode(Operand operand) {
+        std::string addrBaseReg =
+            operand2register(operand)->at(rmByte + (rex.rexB ? 8 : 0));
+
+        if (modByte < 3 && rmByte == 4) {
+            addrBaseReg = "SIB";
+        }
+
+        switch (modByte) {
+            case 0: {
+                addressingMode = "[" + addrBaseReg + "]";
+            }
+            case 1: {
+                addressingMode = "[" + addrBaseReg + " + disp8]";
+            }
+            case 2: {
+                addressingMode = "[" + addrBaseReg + " + disp32]";
+            }
+            case 3: {
+                addressingMode = addrBaseReg;
+            }
+        }
+
+        std::cout << addressingMode << " ? " << hasDisp8 << " ? " << hasDisp32
+                  << std::endl;
+
+        if (modByte == 0 && rmByte == 5) {
+            addressingMode = "[RIP + disp32]";
+        }
+
+        return addressingMode;
     }
 };
 
@@ -97,37 +136,48 @@ struct SIB {
     unsigned char scaleByte;
     unsigned char indexByte;
     unsigned char baseByte;
+    unsigned char modByte;
+    REX rex;
 
     std::string address;
 
-    std::string baseReg, indexReg;
+    std::string addrBaseReg, indexReg;
     int scale;
     bool hasDisp8;
     bool hasDisp32;
 
     SIB() {}
-    SIB(unsigned char sibByte, bool rexb = false, unsigned char modByte = 0) {
+    SIB(unsigned char sibByte, unsigned char modByte, REX rex)
+        : modByte(modByte), rex(rex) {
         scaleByte = (sibByte >> 6) & 0x3;
         indexByte = (sibByte >> 3) & 0x7;
         baseByte = sibByte & 0x7;
+    }
 
+    std::string getAddr(Operand operand, std::string disp8,
+                        std::string disp32) {
         if (baseByte == 5) {
             switch (modByte) {
                 case 0:
-                    baseReg = "disp32";
+                    addrBaseReg = disp32;
                 case 1:
-                    baseReg = rexb ? "RBP + disp8" : "R13 + disp8";
+                    addrBaseReg =
+                        rex.rexB ? "RBP + " + disp8 : "R13 + " + disp8;
                 case 2:
-                    baseReg = rexb ? "RBP + disp32" : "R13 + disp32";
+                    addrBaseReg =
+                        rex.rexB ? "RBP + " + disp32 : "R13 + " + disp32;
             }
         } else {
-            baseReg = REGISTERS64.at(baseByte + (rexb ? 0 : 8));
+            addrBaseReg =
+                operand2register(operand)->at(baseByte + (rex.rexB ? 8 : 0));
         }
 
-        indexReg = REGISTERS64.at(indexByte + (rexb ? 0 : 8));
+        indexReg =
+            operand2register(operand)->at(indexByte + (rex.rexB ? 8 : 0));
         scale = SCALE_FACTOR.at(scaleByte);
-
-        address = baseReg + " + " + indexReg + " * " + std::to_string(scale);
+        address = "[" + addrBaseReg + " + " + indexReg + " * " +
+                  std::to_string(scale) + "]";
+        return address;
     }
 };
 

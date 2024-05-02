@@ -48,6 +48,11 @@ inline bool isREG(Operand operand) {
            operand == Operand::reg32 || operand == Operand::reg64;
 }
 
+inline bool isIMM(Operand operand) {
+    return operand == Operand::imm8 || operand == Operand::imm16 ||
+           operand == Operand::imm32 || operand == Operand::imm64;
+}
+
 inline bool is8Bit(Operand operand) {
     return operand == Operand::rm8 || operand == Operand::reg8;
 }
@@ -429,6 +434,19 @@ const std::vector<std::string> REGISTERS32 = {
 const std::vector<std::string> REGISTERS64 = {
     "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
     "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15"};
+
+inline const std::vector<std::string>* operand2register(Operand operand) {
+    if (is8Bit(operand)) {
+        return &REGISTERS8;
+    } else if (is16Bit(operand)) {
+        return &REGISTERS16;
+    } else if (is32Bit(operand)) {
+        return &REGISTERS32;
+    } else if (is64Bit(operand)) {
+        return &REGISTERS64;
+    }
+    return nullptr;
+}
 
 // Define addressing modes (no need for square brackets)
 const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
