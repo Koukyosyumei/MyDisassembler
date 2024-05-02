@@ -79,6 +79,14 @@ struct X86Decoder {
         assemblyOperands.shrink_to_fit();
     }
 
+    void parsePrefix() {
+        if (state->objectSource[curIdx] == 0x66) {
+            prefix = Prefix::P66;
+            instructionLen += 1;
+            curIdx += 1;
+        }
+    }
+
     void parsePrefixInstructions() {
         int startByte = state->objectSource[curIdx];
         if (PREFIX_INSTRUCTIONS_BYTES_SET.find(startByte) !=
@@ -98,6 +106,14 @@ struct X86Decoder {
             rex = REX(state->objectSource[curIdx]);
             instructionLen += 1;
             curIdx += 1;
+
+            if (rex.rexW) {
+                std::cout << "Set REXW" << std::endl;
+                prefix = Prefix::REXW;
+            } else {
+                std::cout << "Set REX" << std::endl;
+                prefix = Prefix::REX;
+            }
         }
     }
 
@@ -195,7 +211,8 @@ struct X86Decoder {
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
 
-        parsePrefixInstructions();
+        // parsePrefixInstructions();
+        parsePrefix();
         parseREX();
         parseOpecode();
         parseModRM();
@@ -233,7 +250,24 @@ struct X86Decoder {
                             REGISTERS64.at(std::stoi(remOps[0]));
                     }
                 }
-            } else if (operand == Operand::imm32) {
+            } 
+            else if (operand == Operand::imm64) {
+                imm = std::vector<uint8_t>(
+                    state->objectSource.begin() + curIdx,
+                    state->objectSource.begin() + curIdx + 8);
+                std::reverse(imm.begin(), imm.end());
+                instructionLen += 8;
+                curIdx += 8;
+
+                std::stringstream ss;
+                ss << "0x";
+                for (unsigned char x : imm) {
+                    ss << std::hex << std::setw(2) << std::setfill('0')
+                       << static_cast<int>(x);
+                }
+                decodedTranslatedValue = ss.str();
+            }
+            else if (operand == Operand::imm32) {
                 imm = std::vector<uint8_t>(
                     state->objectSource.begin() + curIdx,
                     state->objectSource.begin() + curIdx + 4);
@@ -307,6 +341,8 @@ struct X86Decoder {
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
+        std::cout << startIdx << " " << instructionLen << " "
+                  << assemblyInstructionStr << std::endl;
         uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
                                                  assemblyInstructionStr);
 
