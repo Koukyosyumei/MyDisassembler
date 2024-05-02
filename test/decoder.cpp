@@ -122,8 +122,7 @@ TEST(decoder, SEVERAL_ADD) {
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "add");
-    ASSERT_EQ(state.instructions[std::make_pair(2, 9)],
-              " add  0x00000000 eax");
+    ASSERT_EQ(state.instructions[std::make_pair(2, 9)], " add  0x00000000 eax");
 
     state._currentIdx = 9;
     decoder.init();
@@ -315,7 +314,7 @@ TEST(decoder, MODRM_MOD00_RM101) {
         0x8b, 0x4d, 0x00,                    // add eax ecx
         0x8b, 0x4d, 0x01,                    // mov
         0x8b, 0x8d, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
-        0x8b, 0x0c, 0x25,  0x00, 0x00, 0x08, 0x00};
+        0x8b, 0x0c, 0x25, 0x00, 0x00, 0x08, 0x00};
     DecoderState state(obj);
     X86Decoder decoder(&state);
 
@@ -336,12 +335,48 @@ TEST(decoder, MODRM_MOD00_RM101) {
     ASSERT_EQ(res.first, "mov");
     ASSERT_EQ(state.instructions[std::make_pair(6, 12)],
               " mov  ecx [rbp + 0x00000100]");
-    
+
     state._currentIdx = 12;
     decoder.init();
     res = decoder.decodeSingleInstruction();
     ASSERT_EQ(res.first, "mov");
     ASSERT_EQ(state.instructions[std::make_pair(12, 19)],
               " mov  ecx 0x00080000");
+}
+
+TEST(decoder, MODRM_SIB_RSP) {
+    std::vector<unsigned char> obj = {
+        0x8b, 0x14, 0x08,        // add eax ecx
+        0x8b, 0x54, 0x08, 0x01,  // mov
+        0x8b, 0x14, 0x48,        // add  eax 0x0
+        0x8b, 0x14, 0x24         // add
+    };
+    DecoderState state(obj);
+    X86Decoder decoder(&state);
+
+    state._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(0, 3)], " mov  edx [rax + rcx * 1]");
+
+    state._currentIdx = 3;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(3, 7)], " mov  edx [1 + rax + rcx * 1]");
+
+    state._currentIdx = 7;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(7, 10)],
+              " mov  edx [rax + rcx * 2]");
+
+    state._currentIdx = 10;
+    decoder.init();
+    res = decoder.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "mov");
+    ASSERT_EQ(state.instructions[std::make_pair(10, 13)],
+              " mov  edx [rsp]");
 }
 

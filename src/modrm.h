@@ -196,6 +196,8 @@ struct SIB {
 
         if (modByte == 0 && baseByte == 5 && indexByte == 4) {
             address = addrBaseReg;
+        } else if (indexByte == 4 && (!rex.rexB)) {
+            address = "[" + addrBaseReg + "]";
         } else {
             indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
             scale = SCALE_FACTOR.at(scaleByte);
