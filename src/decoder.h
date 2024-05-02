@@ -55,7 +55,7 @@ struct X86Decoder {
           instructionLen(0),
           prefixOffset(0),
           prefix(Prefix::NONE),
-          disp8(-1) {}
+          disp8(0) {}
 
     void init() {
         hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
@@ -64,9 +64,9 @@ struct X86Decoder {
         instructionLen = 0;
         prefixOffset = 0;
         prefix = Prefix::NONE;
-        disp8 = -1;
+        disp8 = 0;
 
-        prefixInstructionByte = opcodeByte = modrmByte = sibByte = 0;
+        prefixInstructionByte = opcodeByte = modrmByte = sibByte = -1;
 
         remOps.clear();
         remOps.shrink_to_fit();
@@ -134,7 +134,7 @@ struct X86Decoder {
             modrmByte = state->objectSource[curIdx];
         }
 
-        if (modrmByte != 0) {
+        if (modrmByte >= 0) {
             uint8_t reg = getRegVal(modrmByte);
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
                                                               : reg2mnem[-1];
@@ -153,7 +153,7 @@ struct X86Decoder {
     void parseModRM() {
         if (hasModrm(opEnc)) {
             std::cout << "Parse MODRM" << std::endl;
-            if (modrmByte == 0) {
+            if (modrmByte < 0) {
                 throw std::runtime_error(
                     "Expected ModRM byte but there aren't any bytes left.");
             }
@@ -169,11 +169,12 @@ struct X86Decoder {
             if (curIdx < state->objectSource.size()) {
                 sibByte = state->objectSource[curIdx];
             }
-            if (sibByte == 0) {
+            if (sibByte < 0) {
                 throw std::runtime_error(
                     "Expected SIB byte but there aren't any bytes left.");
             }
             sib = SIB(sibByte, modrm.modByte, rex);
+            std::cout << "SIB p1 " << std::endl;
             instructionLen += 1;
             curIdx += 1;
         }
@@ -188,6 +189,7 @@ struct X86Decoder {
             hasDisp8 = true;
             instructionLen += 1;
             curIdx += 1;
+            std::cout << "a - " << instructionLen << " " << 1 << std::endl;
         }
 
         if ((hasModrm(opEnc) && modrm.hasDisp32) ||
@@ -201,6 +203,7 @@ struct X86Decoder {
             hasDisp32 = true;
             instructionLen += 4;
             curIdx += 4;
+            std::cout << "a - " << instructionLen << " " << 4 << std::endl;
         }
     }
 
@@ -213,13 +216,20 @@ struct X86Decoder {
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
 
         // parsePrefixInstructions();
+        std::cout << 1 << std::endl;
         parsePrefix();
+        std::cout << 2 << std::endl;
         parseREX();
+        std::cout << 3 << std::endl;
         parseOpecode();
+        std::cout << 4 << std::endl;
         parseModRM();
+        std::cout << 5 << std::endl;
         parseSIB();
+        std::cout << 6 << std::endl;
         parseAddressOffset();
-
+        std::cout << 7 << std::endl;
+        
         // ############### Process Operands ################
         std::vector<uint8_t> imm;
         for (Operand& operand : operands) {
@@ -251,8 +261,8 @@ struct X86Decoder {
                             REGISTERS64.at(std::stoi(remOps[0]));
                     }
                 }
-                
-                if (hasModrm(opEnc) && modrm.hasSib) {
+
+                if (isRM(operand) && hasModrm(opEnc) && modrm.hasSib) {
                     decodedTranslatedValue = sib.getAddr(
                         operand, std::to_string(disp8), std::to_string(disp8));
                 }

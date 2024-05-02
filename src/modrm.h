@@ -43,8 +43,8 @@ struct ModRM {
     int regByte;
     int rmByte;
 
-    std::string addressingMode;
-    std::string reg;
+    // std::string addressingMode;
+    // std::string reg;
 
     bool hasDisp8;
     bool hasDisp32;
@@ -62,6 +62,7 @@ struct ModRM {
         regByte = (modrmByte >> 3) & 0x7;
         modByte = (modrmByte >> 6) & 0x3;
         hasSib = false;
+        std::cout << rmByte << " " << regByte << " " << modByte << std::endl;
 
         if (modByte < 3 && rmByte == 4) {
             hasSib = true;
@@ -70,18 +71,22 @@ struct ModRM {
             case 0: {
                 hasDisp8 = false;
                 hasDisp32 = false;
+                break;
             }
             case 1: {
                 hasDisp8 = true;
                 hasDisp32 = false;
+                break;
             }
             case 2: {
                 hasDisp8 = false;
                 hasDisp32 = true;
+                break;
             }
             case 3: {
                 hasDisp8 = false;
                 hasDisp32 = false;
+                break;
             }
         }
 
@@ -99,28 +104,44 @@ struct ModRM {
     }
 
     std::string getAddrMode(Operand operand) {
-        std::string addrBaseReg =
-            operand2register(operand)->at(rmByte + (rex.rexB ? 8 : 0));
+        std::string addrBaseReg;
+        if (modByte == 3) {
+            addrBaseReg =
+                operand2register(operand)->at(rmByte + (rex.rexB ? 8 : 0));
+        } else {
+            addrBaseReg = REGISTERS64.at(rmByte + (rex.rexB ? 8 : 0));
+        }
 
         if (modByte < 3 && rmByte == 4) {
             addrBaseReg = "SIB";
         }
 
+        std::string addressingMode;
         switch (modByte) {
             case 0: {
+                std::cout << 1234 << std::endl;
                 addressingMode = "[" + addrBaseReg + "]";
+                std::cout << addressingMode << std::endl;
+                break;
             }
             case 1: {
+                std::cout << 1237 << std::endl;
                 addressingMode = "[" + addrBaseReg + " + disp8]";
+                break;
             }
             case 2: {
+                std::cout << 1236 << std::endl;
                 addressingMode = "[" + addrBaseReg + " + disp32]";
+                break;
             }
             case 3: {
+                std::cout << 1235 << std::endl;
                 addressingMode = addrBaseReg;
+                break;
             }
         }
 
+        std::cout << modByte << " " << addressingMode << std::endl;
         std::cout << addressingMode << " ? " << hasDisp8 << " ? " << hasDisp32
                   << std::endl;
 
@@ -146,35 +167,43 @@ struct SIB {
     bool hasDisp8;
     bool hasDisp32;
 
-    SIB() {}
+    SIB() : hasDisp8(false), hasDisp32(false) {}
     SIB(unsigned char sibByte, unsigned char modByte, REX rex)
         : modByte(modByte), rex(rex) {
         scaleByte = (sibByte >> 6) & 0x3;
         indexByte = (sibByte >> 3) & 0x7;
         baseByte = sibByte & 0x7;
+
+        hasDisp8 = baseByte == 5 && modByte == 1;
+        hasDisp32 = baseByte == 5 && modByte != 1;
     }
 
     std::string getAddr(Operand operand, std::string disp8,
                         std::string disp32) {
         if (baseByte == 5) {
             switch (modByte) {
-                case 0:
+                case 0: {
                     addrBaseReg = disp32;
-                case 1:
+                    break;
+                }
+                case 1: {
                     addrBaseReg =
-                        rex.rexB ? "RBP + " + disp8 : "R13 + " + disp8;
-                case 2:
+                        rex.rexB ? "R13 + " + disp8 : "RBP + " + disp8;
+                    break;
+                }
+                case 2: {
                     addrBaseReg =
-                        rex.rexB ? "RBP + " + disp32 : "R13 + " + disp32;
+                        rex.rexB ? "R13 + " + disp32 : "RBP + " + disp32;
+                    break;
+                }
             }
         } else {
-            addrBaseReg =
-                operand2register(operand)->at(baseByte + (rex.rexB ? 8 : 0));
+            addrBaseReg = REGISTERS64.at(baseByte + (rex.rexB ? 8 : 0));
         }
 
-        indexReg =
-            operand2register(operand)->at(indexByte + (rex.rexB ? 8 : 0));
+        indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));
         scale = SCALE_FACTOR.at(scaleByte);
+        std::cout << "construct SIB address" << std::endl;
         address = "[" + addrBaseReg + " + " + indexReg + " * " +
                   std::to_string(scale) + "]";
         return address;
