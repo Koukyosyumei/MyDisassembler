@@ -103,7 +103,8 @@ struct ModRM {
         return operand2register(operand)->at(regByte + (rex.rexR ? 8 : 0));
     }
 
-    std::string getAddrMode(Operand operand) {
+    std::string getAddrMode(Operand operand, std::string disp8,
+                            std::string disp32) {
         std::string addrBaseReg;
         if (modByte == 3) {
             addrBaseReg =
@@ -126,12 +127,12 @@ struct ModRM {
             }
             case 1: {
                 std::cout << 1237 << std::endl;
-                addressingMode = "[" + addrBaseReg + " + disp8]";
+                addressingMode = "[" + addrBaseReg + " + " + disp8 + "]";
                 break;
             }
             case 2: {
                 std::cout << 1236 << std::endl;
-                addressingMode = "[" + addrBaseReg + " + disp32]";
+                addressingMode = "[" + addrBaseReg + " + " + disp32 + "]";
                 break;
             }
             case 3: {
@@ -146,7 +147,7 @@ struct ModRM {
                   << std::endl;
 
         if (modByte == 0 && rmByte == 5) {
-            addressingMode = "[RIP + disp32]";
+            addressingMode = "[RIP + " + disp32 + "]";
         }
 
         return addressingMode;
@@ -199,6 +200,11 @@ struct SIB {
             }
         } else {
             addrBaseReg = REGISTERS64.at(baseByte + (rex.rexB ? 8 : 0));
+            if (modByte == 1) {
+                addrBaseReg = disp8 + " + " + addrBaseReg;
+            } else if (modByte == 2) {
+                addrBaseReg = disp32 + " + " + addrBaseReg;
+            }
         }
 
         indexReg = REGISTERS64.at(indexByte + (rex.rexB ? 8 : 0));

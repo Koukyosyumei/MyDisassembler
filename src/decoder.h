@@ -38,8 +38,8 @@ struct X86Decoder {
     std::vector<std::string> remOps;
     std::vector<Operand> operands;
 
-    uint8_t disp8;
-    std::vector<uint8_t> disp32;
+    std::string disp8;
+    std::string disp32;
 
     std::vector<std::string> assemblyInstruction;
     std::vector<std::string> assemblyOperands;
@@ -54,8 +54,7 @@ struct X86Decoder {
           curIdx(0),
           instructionLen(0),
           prefixOffset(0),
-          prefix(Prefix::NONE),
-          disp8(0) {}
+          prefix(Prefix::NONE) {}
 
     void init() {
         hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
@@ -64,7 +63,7 @@ struct X86Decoder {
         instructionLen = 0;
         prefixOffset = 0;
         prefix = Prefix::NONE;
-        disp8 = 0;
+        // disp8 = 0;
 
         prefixInstructionByte = opcodeByte = modrmByte = sibByte = -1;
 
@@ -185,7 +184,7 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            disp8 = state->objectSource[curIdx];
+            disp8 = std::to_string(state->objectSource[curIdx]);
             hasDisp8 = true;
             instructionLen += 1;
             curIdx += 1;
@@ -196,10 +195,18 @@ struct X86Decoder {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp32) ||
             (hasModrm(opEnc) && modrm.hasSib &&
              (modrm.modByte == 0 || modrm.modByte == 2) && sib.baseByte == 5)) {
-            disp32 =
+            std::vector<uint8_t> _disp32 =
                 std::vector<uint8_t>(state->objectSource.begin() + curIdx,
                                      state->objectSource.begin() + curIdx + 4);
-            std::reverse(disp32.begin(), disp32.end());
+            std::reverse(_disp32.begin(), _disp32.end());
+            std::stringstream ss;
+            ss << "0x";
+            for (unsigned char x : _disp32) {
+                ss << std::hex << std::setw(2) << std::setfill('0')
+                   << static_cast<int>(x);
+            }
+            disp32 = ss.str();
+
             hasDisp32 = true;
             instructionLen += 4;
             curIdx += 4;
@@ -229,7 +236,7 @@ struct X86Decoder {
         std::cout << 6 << std::endl;
         parseAddressOffset();
         std::cout << 7 << std::endl;
-        
+
         // ############### Process Operands ################
         std::vector<uint8_t> imm;
         for (Operand& operand : operands) {
@@ -242,7 +249,8 @@ struct X86Decoder {
             } else if (isRM(operand) || isREG(operand)) {
                 if (hasModrm(opEnc)) {
                     if (isRM(operand)) {
-                        decodedTranslatedValue = modrm.getAddrMode(operand);
+                        decodedTranslatedValue =
+                            modrm.getAddrMode(operand, disp8, disp32);
                     } else {
                         decodedTranslatedValue = modrm.getReg(operand);
                     }
@@ -263,8 +271,8 @@ struct X86Decoder {
                 }
 
                 if (isRM(operand) && hasModrm(opEnc) && modrm.hasSib) {
-                    decodedTranslatedValue = sib.getAddr(
-                        operand, std::to_string(disp8), std::to_string(disp8));
+                    decodedTranslatedValue =
+                        sib.getAddr(operand, disp8, disp32);
                 }
             } else if (isIMM(operand)) {
                 int immSize = 0;
