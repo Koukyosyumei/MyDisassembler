@@ -1,131 +1,347 @@
+#pragma once
 #include <algorithm>
 #include <cstdint>
-#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "constants.h"
+#include "modrm.h"
 #include "table.h"
 
-const std::string UNKNOWN_INSTRUCTION = "???";
+struct State {
+    const std::vector<unsigned char>& objectSource;
 
-struct DecoderState {
-    std::vector<bool>
-        _hasDecoded;  // bool array indicating which bytes have been decoded
-    const std::vector<unsigned char>
-        &objectSource;   // byte array of the object source
-    size_t _currentIdx;  // the current index to be decoded
-    std::unordered_map<std::pair<size_t, size_t>, std::string>
-        instructions;  // mapping of index to instructions
-    std::vector<std::pair<size_t, size_t>> instructionKeys;
-    std::unordered_map<size_t, size_t> instructionLens;
-    std::vector<size_t> runningErrorIdx;  // keep track of error bytes indexes
-    std::vector<std::string> labelAddresses;
-    std::vector<size_t> deferAddresses;
-    bool _completedRecursiveDescent;
+    bool hasREX;
+    // bool hasModRM;
+    bool hasSIB;
+    bool hasDisp8;
+    bool hasDisp32;
 
-    DecoderState(const std::vector<unsigned char> &objectSource)
+    size_t curIdx;
+    size_t instructionLen;
+    size_t prefixOffset;
+
+    int prefixInstructionByte, opcodeByte, modrmByte, sibByte;
+
+    Mnemonic mnemonic;
+    Prefix prefix;
+    REX rex;
+    ModRM modrm;
+    SIB sib;
+
+    OpEnc opEnc;
+    std::vector<std::string> remOps;
+    std::vector<Operand> operands;
+
+    std::string disp8;
+    std::string disp32;
+
+    std::vector<std::string> assemblyInstruction;
+    std::vector<std::string> assemblyOperands;
+
+    State(const std::vector<unsigned char>& objectSource)
         : objectSource(objectSource),
-          _currentIdx(0),
-          _completedRecursiveDescent(false) {
-        _hasDecoded = std::vector<bool>(objectSource.size(), false);
+          hasREX(false),
+          hasSIB(false),
+          hasDisp8(false),
+          hasDisp32(false),
+          curIdx(0),
+          instructionLen(0),
+          prefixOffset(0),
+          prefix(Prefix::NONE) {}
+
+    void init() {
+        hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
+        curIdx = 0;
+        instructionLen = 0;
+        prefixOffset = 0;
+        prefix = Prefix::NONE;
+        // disp8 = 0;
+
+        prefixInstructionByte = opcodeByte = modrmByte = sibByte = -1;
+
+        remOps.clear();
+        remOps.shrink_to_fit();
+        operands.clear();
+        operands.shrink_to_fit();
+
+        assemblyInstruction.clear();
+        assemblyInstruction.shrink_to_fit();
+        assemblyOperands.clear();
+        assemblyOperands.shrink_to_fit();
     }
 
-    uint64_t markDecoded(size_t startIdx, size_t byteLen,
-                         std::string &instruction) {
-        size_t labelAddr = std::string::npos;
-
-        // skip if this has already been decoded
-        std::unordered_set<bool> decodedPath;
-        for (size_t idx = startIdx; idx < startIdx + byteLen; ++idx) {
-            decodedPath.insert(_hasDecoded[idx]);
+    void parsePrefix() {
+        if (objectSource[curIdx] == 0x66) {
+            prefix = Prefix::P66;
+            instructionLen += 1;
+            curIdx += 1;
         }
-        if (decodedPath.count(true) > 0) {
-            return labelAddr;
+    }
+
+    void parsePrefixInstructions() {
+        int startByte = objectSource[curIdx];
+        if (PREFIX_INSTRUCTIONS_BYTES_SET.find(startByte) !=
+            PREFIX_INSTRUCTIONS_BYTES_SET.end()) {
+            // eat prefix
+            prefixInstructionByte = startByte;
+            prefixOffset = 1;
+            instructionLen += 1;
+            curIdx += 1;
         }
+    }
 
-        _currentIdx = startIdx + byteLen;
-        for (size_t idx = startIdx; idx < startIdx + byteLen; ++idx) {
-            _hasDecoded[idx] = true;
-        }
+    void parseREX() {
+        // The format of REX prefix is 0100|W|R|X|B
+        if ((objectSource[curIdx] >> 4) == 4) {
+            hasREX = true;
+            rex = REX(objectSource[curIdx]);
+            instructionLen += 1;
+            curIdx += 1;
+            std::cout << "HAS REX" << std::endl;
 
-        if (!runningErrorIdx.empty()) {
-            size_t startErr = runningErrorIdx[0];
-            size_t byteLenErr = runningErrorIdx.size();
-            instructions[std::make_pair(startErr, startErr + byteLenErr)] =
-                UNKNOWN_INSTRUCTION;
-            instructionKeys.push_back(
-                std::make_pair(startErr, startErr + byteLenErr));
-            runningErrorIdx.clear();
-        }
-
-        std::string operatorStr = instruction.substr(0, instruction.find(" "));
-        transform(operatorStr.begin(), operatorStr.end(), operatorStr.begin(),
-                  ::tolower);
-        if (operatorStr == "jmp" || operatorStr == "jz" ||
-            operatorStr == "jnz" || operatorStr == "call") {
-            size_t spacePos = instruction.find(" ");
-            if (spacePos != std::string::npos) {
-                std::string operand = instruction.substr(spacePos + 1);
-                size_t offset;
-                bool validOffset = false;
-                try {
-                    offset = stoul(operand, nullptr, 16);
-                    validOffset = true;
-                } catch (std::invalid_argument &) {
-                    // Some calls do not have a direct offset
-                }
-
-                if (validOffset) {
-                    if (operand.size() == 8) {
-                        if (offset > 0x7FFFFFFF) {
-                            offset -= 0x100000000;
-                        }
-                    } else if (operand.size() == 4) {
-                        if (offset > 0x7FFF) {
-                            offset -= 0x10000;
-                        }
-                    } else if (operand.size() == 2) {
-                        if (offset > 0x7F) {
-                            offset -= 0x100;
-                        }
-                    }
-
-                    labelAddr = startIdx + byteLen + offset;
-                    labelAddresses.push_back(std::to_string(labelAddr));
-                    std::string label = "label_" + std::to_string(labelAddr);
-                    // instruction = instructionOp + " " + label + " ; " +
-                    //              operand + " = " + std::to_string(offset) +
-                    //              " signed = addr[" +
-                    //              std::to_string(labelAddr) +
-                    //              "]";
-                }
+            if (rex.rexW) {
+                prefix = Prefix::REXW;
+            } else {
+                prefix = Prefix::REX;
             }
         }
-
-        instructions[std::make_pair(startIdx, startIdx + byteLen)] =
-            instruction;
-        instructionKeys.push_back(std::make_pair(startIdx, startIdx + byteLen));
-        instructionLens[startIdx] = byteLen;
-
-        return labelAddr;
     }
 
-    int getCurIdx() { return _currentIdx; }
+    void parseOpecode() {
+        // eat opecode
+        opcodeByte = objectSource[curIdx];
+        instructionLen += 1;
+        curIdx += 1;
 
-    bool hasDecoded(int idx) { return _hasDecoded[idx]; }
+        std::cout << (int)prefix << " OPOP " << opcodeByte << std::endl;
 
-    bool isComplete() {
-        int countFalse =
-            std::count(_hasDecoded.begin(), _hasDecoded.end(), false);
-        // int countNone = std::count(_hasDecoded.begin(), _hasDecoded.end(),
-        // nullptr);
-        return countFalse == 0;  // && countNone == 0;
+        // (prefix, opcode) -> (reg, mnemonic)
+        std::unordered_map<int, Mnemonic> reg2mnem;
+        if (OP_LOOKUP.find(std::make_pair(prefix, opcodeByte)) !=
+            OP_LOOKUP.end()) {
+            reg2mnem = OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
+        } else if (prefix == Prefix::REX &&
+                   OP_LOOKUP.find(std::make_pair(Prefix::NONE, opcodeByte)) !=
+                       OP_LOOKUP.end()) {
+            reg2mnem = OP_LOOKUP.at(std::make_pair(Prefix::NONE, opcodeByte));
+            prefix = Prefix::NONE;
+        } else {
+            throw std::runtime_error(
+                "Unknown combination of the prefix and the opcodeByte\n");
+        }
+
+        for (auto t : reg2mnem) {
+            std::cout << t.first << ": " << to_string(t.second) << ",";
+        }
+        std::cout << std::endl;
+
+        // We sometimes need reg of modrm to determine the opecode
+        // e.g. 83 /4 -> AND
+        //      83 /1 -> OR
+        if (curIdx < objectSource.size()) {
+            modrmByte = objectSource[curIdx];
+        }
+
+        std::cout << (int)prefix << " 0000000 " << opcodeByte << std::endl;
+
+        if (modrmByte >= 0) {
+            int reg = getRegVal(modrmByte);
+            std::cout << "reg " << reg << std::endl;
+            mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
+                                                              : reg2mnem[-1];
+        } else {
+            mnemonic = reg2mnem[-1];
+        }
+
+        assemblyInstruction.push_back(to_string(mnemonic));
+        std::cout << 888 << std::endl;
+        std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
+            OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
+        opEnc = std::get<0>(res);
+        remOps = std::get<1>(res);
+        operands = std::get<2>(res);
     }
 
-    bool isSweepComplete() {
-        return _currentIdx >= static_cast<int>(objectSource.size());
+    void parseModRM() {
+        if (hasModrm(opEnc)) {
+            if (modrmByte < 0) {
+                throw std::runtime_error(
+                    "Expected ModRM byte but there aren't any bytes left.");
+            }
+            instructionLen += 1;
+            curIdx += 1;
+            modrm = ModRM(modrmByte, rex);
+        }
+    }
+
+    void parseSIB() {
+        if (hasModrm(opEnc) && modrm.hasSib) {
+            // eat the sib (1 byte)
+            if (curIdx < objectSource.size()) {
+                sibByte = objectSource[curIdx];
+            }
+            if (sibByte < 0) {
+                throw std::runtime_error(
+                    "Expected SIB byte but there aren't any bytes left.");
+            }
+            sib = SIB(sibByte, modrm.modByte, rex);
+            instructionLen += 1;
+            curIdx += 1;
+        }
+    }
+
+    void parseAddressOffset() {
+        if ((hasModrm(opEnc) && modrm.hasDisp8) ||
+            (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
+            (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
+             sib.baseByte == 5)) {
+            disp8 = std::to_string(objectSource[curIdx]);
+            hasDisp8 = true;
+            instructionLen += 1;
+            curIdx += 1;
+        }
+
+        if ((hasModrm(opEnc) && modrm.hasDisp32) ||
+            (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp32) ||
+            (hasModrm(opEnc) && modrm.hasSib &&
+             (modrm.modByte == 0 || modrm.modByte == 2) && sib.baseByte == 5)) {
+            std::vector<uint8_t> _disp32 =
+                std::vector<uint8_t>(objectSource.begin() + curIdx,
+                                     objectSource.begin() + curIdx + 4);
+            std::reverse(_disp32.begin(), _disp32.end());
+            std::stringstream ss;
+            ss << "0x";
+            for (unsigned char x : _disp32) {
+                ss << std::hex << std::setw(2) << std::setfill('0')
+                   << static_cast<int>(x);
+            }
+            disp32 = ss.str();
+
+            hasDisp32 = true;
+            instructionLen += 4;
+            curIdx += 4;
+        }
+    }
+
+    // startIdx, targetLen, mnemonic, assemblyStr
+    std::tuple<int, int, std::string, std::string> decodeSingleInstruction(
+        int startIdx) {
+        // ############### Initialize ##############################
+        init();
+        curIdx = startIdx;
+
+        // the general format of the x86-64 operations
+        // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
+
+        // parsePrefixInstructions();
+        parsePrefix();
+        parseREX();
+        parseOpecode();
+        parseModRM();
+        parseSIB();
+        parseAddressOffset();
+
+        // ############### Process Operands ################
+        std::vector<uint8_t> imm;
+        for (Operand& operand : operands) {
+            std::string decodedTranslatedValue;
+
+            // if (operand == nullptr) break;
+
+            if (isA_REG(operand)) {
+                decodedTranslatedValue = to_string(operand);
+            } else if (isRM(operand) || isREG(operand)) {
+                if (hasModrm(opEnc)) {
+                    if (isRM(operand)) {
+                        decodedTranslatedValue =
+                            modrm.getAddrMode(operand, disp8, disp32);
+                    } else {
+                        decodedTranslatedValue = modrm.getReg(operand);
+                    }
+                } else {
+                    if (is8Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS8.at(std::stoi(remOps[0]));
+                    } else if (is16Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS16.at(std::stoi(remOps[0]));
+                    } else if (is32Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS32.at(std::stoi(remOps[0]));
+                    } else if (is64Bit(operand)) {
+                        decodedTranslatedValue =
+                            REGISTERS64.at(std::stoi(remOps[0]));
+                    }
+                }
+
+                if (isRM(operand) && hasModrm(opEnc) && modrm.hasSib) {
+                    decodedTranslatedValue =
+                        sib.getAddr(operand, disp8, disp32);
+                }
+            } else if (isIMM(operand)) {
+                int immSize = 0;
+                if (operand == Operand::imm64) {
+                    immSize = 8;
+                } else if (operand == Operand::imm32) {
+                    immSize = 4;
+                } else if (operand == Operand::imm16) {
+                    immSize = 2;
+                } else if (operand == Operand::imm8) {
+                    immSize = 1;
+                }
+                imm = std::vector<uint8_t>(
+                    objectSource.begin() + curIdx,
+                    objectSource.begin() + curIdx + immSize);
+                std::reverse(imm.begin(), imm.end());
+                instructionLen += immSize;
+                curIdx += immSize;
+
+                std::stringstream ss;
+                ss << "0x";
+                for (unsigned char x : imm) {
+                    ss << std::hex << std::setw(2) << std::setfill('0')
+                       << static_cast<int>(x);
+                }
+                decodedTranslatedValue = ss.str();
+            }
+
+            /*
+            if (hasDisp8) {
+                decodedTranslatedValue += " disp8=" + std::to_string(disp8);
+            }
+
+            if (hasDisp32) {
+                decodedTranslatedValue += " disp32=<UNIMPLEMENTED>";
+            }
+            */
+
+            assemblyOperands.push_back(decodedTranslatedValue);
+        }
+
+        // if (nullptr in assemblyOperands) throw InvalidTranslationValue();
+
+        std::string ao = "";
+        for (std::string& a : assemblyOperands) {
+            ao += " " + a;
+        }
+        assemblyInstruction.push_back(ao);
+
+        std::string assemblyInstructionStr = "";
+        for (std::string& a : assemblyInstruction) {
+            assemblyInstructionStr += " " + a;
+        }
+        std::cout << startIdx << " " << instructionLen << " "
+                  << assemblyInstructionStr << std::endl;
+        // uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
+        //                                         assemblyInstructionStr);
+
+        return std::make_tuple(startIdx, instructionLen, to_string(mnemonic),
+                               assemblyInstructionStr);
     }
 };
