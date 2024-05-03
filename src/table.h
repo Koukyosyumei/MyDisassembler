@@ -1020,6 +1020,18 @@ const std::unordered_map<
         {{Prefix::NONE, Mnemonic::RET, u2d("\xC3")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::RET, u2d("\xCB")}, {OpEnc::NP, {}, {}}},
 
+        // JZ
+        {{Prefix::NONE, Mnemonic::JZ, u2d("\x0F\x84")},
+         {OpEnc::D, {"cd"}, {Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::JZ, u2d("\x74")},
+         {OpEnc::D, {"cd"}, {Operand::imm8}}},
+
+        // JNZ
+        {{Prefix::NONE, Mnemonic::JNZ, u2d("\x0F\x85")},
+         {OpEnc::D, {"cd"}, {Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::JNZ, u2d("\x75")},
+         {OpEnc::D, {"cd"}, {Operand::imm8}}},
+
         // JMP
         {{Prefix::NONE, Mnemonic::JMP, u2d("\xEB")},
          {OpEnc::D, {"cd"}, {Operand::imm8}}},
@@ -1027,6 +1039,48 @@ const std::unordered_map<
          {OpEnc::D, {"cd"}, {Operand::imm32}}},
         {{Prefix::NONE, Mnemonic::JMP, u2d("\xFF")},
          {OpEnc::M, {}, {Operand::reg}}},
+
+        // POP
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x8F")},
+         {OpEnc::M, {"0"}, {Operand::rm32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x58")},
+         {OpEnc::O, {"0"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x59")},
+         {OpEnc::O, {"1"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5A")},
+         {OpEnc::O, {"2"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5B")},
+         {OpEnc::O, {"3"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5C")},
+         {OpEnc::O, {"4"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5D")},
+         {OpEnc::O, {"5"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5E")},
+         {OpEnc::O, {"6"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::POP, u2d("\x5F")},
+         {OpEnc::O, {"7"}, {Operand::reg32}}},
+
+        // PUSH
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\xFF")},
+         {OpEnc::M, {"6"}, {Operand::rm32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x50")},
+         {OpEnc::O, {"0"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x51")},
+         {OpEnc::O, {"1"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x52")},
+         {OpEnc::O, {"2"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x53")},
+         {OpEnc::O, {"3"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x54")},
+         {OpEnc::O, {"4"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x55")},
+         {OpEnc::O, {"5"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x56")},
+         {OpEnc::O, {"6"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x57")},
+         {OpEnc::O, {"7"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x68")},
+         {OpEnc::I, {"id"}, {Operand::imm32}}},
 };
 
 // Supported operators set
