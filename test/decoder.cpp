@@ -498,3 +498,27 @@ TEST(disas, REXRXB) {
     ASSERT_EQ(disas.instructions[std::make_pair(8, 12)], " add  [r9 + rdx * 4] eax");
 }
 
+TEST(disas, TWOBYTE) {
+    std::vector<unsigned char> obj = {
+        0x0f, 0xaf, 0xc3,  // add eax ecx
+        0x48, 0x0f, 0xbe, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00, // movsx 0x0, rax, movsx bx, rax
+        0x48, 0x64, 0xc3, // movsx
+    };
+    DisAssembler disas(obj);
+
+    disas._currentIdx = 0;
+    std::pair<std::string, uint64_t> res = disas.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "imul");
+    ASSERT_EQ(disas.instructions[std::make_pair(0, 3)], " imul  eax ebx");
+    
+    disas._currentIdx = 3;
+    res = disas.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "movsx");
+    ASSERT_EQ(disas.instructions[std::make_pair(3, 12)], " movsx  rax 0x00000000");
+    
+    disas._currentIdx = 12;
+    res = disas.decodeSingleInstruction();
+    ASSERT_EQ(res.first, "movsx");
+    ASSERT_EQ(disas.instructions[std::make_pair(12, 15)], " movsx  rax ebx");
+}
+

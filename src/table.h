@@ -302,6 +302,23 @@ const std::unordered_map<std::pair<Prefix, int>,
           {7, Mnemonic::IDIV},
           {0, Mnemonic::TEST}}},
 
+        {{Prefix::P66, u2d("\x0F\xAF")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::NONE, u2d("\x0F\xAF")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::REXW, u2d("\x0F\xAF")}, {{-1, Mnemonic::IMUL}}},
+
+        {{Prefix::P66, u2d("\x6B")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::NONE, u2d("\x6B")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::REXW, u2d("\x6B")}, {{-1, Mnemonic::IMUL}}},
+
+        {{Prefix::P66, u2d("\x69")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::NONE, u2d("\x69")}, {{-1, Mnemonic::IMUL}}},
+        {{Prefix::REXW, u2d("\x69")}, {{-1, Mnemonic::IMUL}}},
+
+        {{Prefix::NONE, u2d("\xA8")}, {{-1, Mnemonic::TEST}}},
+        {{Prefix::P66, u2d("\xA9")}, {{-1, Mnemonic::TEST}}},
+        {{Prefix::NONE, u2d("\xA9")}, {{-1, Mnemonic::TEST}}},
+        {{Prefix::REXW, u2d("\xA9")}, {{-1, Mnemonic::TEST}}},
+
         // INC, DEC
         {{Prefix::NONE, u2d("\xFE")}, {{0, Mnemonic::INC}, {1, Mnemonic::DEC}}},
         {{Prefix::REX, u2d("\xFE")}, {{0, Mnemonic::INC}, {1, Mnemonic::DEC}}},
@@ -316,6 +333,21 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::P66, u2d("\x98")}, {{-1, Mnemonic::CWD}}},
         {{Prefix::NONE, u2d("\x98")}, {{-1, Mnemonic::CDQ}}},
         {{Prefix::REXW, u2d("\x98")}, {{-1, Mnemonic::CQO}}},
+
+        // MOVSX
+        {{Prefix::P66, u2d("\x0F\xBE")}, {{-1, Mnemonic::MOVSX}}},
+        {{Prefix::NONE, u2d("\x0F\xBE")}, {{-1, Mnemonic::MOVSX}}},
+        {{Prefix::REX, u2d("\x0F\xBE")}, {{-1, Mnemonic::MOVSX}}},
+        {{Prefix::NONE, u2d("\x0F\xBF")}, {{-1, Mnemonic::MOVSX}}},
+        {{Prefix::REXW, u2d("\x0F\xBF")}, {{-1, Mnemonic::MOVSX}}},
+        {{Prefix::REXW, u2d("\x63")}, {{-1, Mnemonic::MOVSX}}},
+
+        // MOVZX
+        {{Prefix::P66, u2d("\x0F\xB6")}, {{-1, Mnemonic::MOVZX}}},
+        {{Prefix::NONE, u2d("\x0F\xB6")}, {{-1, Mnemonic::MOVZX}}},
+        {{Prefix::REX, u2d("\x0F\xB6")}, {{-1, Mnemonic::MOVZX}}},
+        {{Prefix::NONE, u2d("\x0F\xB7")}, {{-1, Mnemonic::MOVZX}}},
+        {{Prefix::REXW, u2d("\x0F\xB7")}, {{-1, Mnemonic::MOVZX}}},
 
         // LEA
         {{Prefix::P66, u2d("\x8D")}, {{-1, Mnemonic::LEA}}},
@@ -941,7 +973,7 @@ const std::unordered_map<
          {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::m}}},
         {{Prefix::REXW, Mnemonic::LEA, u2d("\x8D")},
          {OpEnc::RM, {"/r"}, {Operand::reg64, Operand::m}}},
-        
+
         /*
         // BSWAP
         {{Prefix::NONE, Mnemonic::BSWAP, u2d("\x0F\xC8"), Opcode_plus_rd()},

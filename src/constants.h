@@ -554,16 +554,17 @@ inline std::string to_string(OpEnc openc) {
     }
 }
 
+const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F};
+
 // Predefined prefixes and their associated instructions
 const std::unordered_map<int, std::vector<std::string>>
     BYTE2PREFIX_INSTRUCTIONS = {
-        {0x0F, {"IMUL", "JZ", "JNZ"}},
         {0xF0, {"LOCK"}},
         {0xF2, {"REPNE", "REPNZ"}},
         {0xF3, {"REP", "REPE", "REPZ"}},
 };
 
-const std::unordered_set<int> PREFIX_INSTRUCTIONS_BYTES_SET = {0x0F, 0xF0, 0xF2,
+const std::unordered_set<int> PREFIX_INSTRUCTIONS_BYTES_SET = {0xF0, 0xF2,
                                                                0xF3};
 
 const std::vector<int> SCALE_FACTOR = {1, 2, 4, 8};

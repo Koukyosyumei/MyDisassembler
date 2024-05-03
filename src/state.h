@@ -118,11 +118,23 @@ struct State {
         instructionLen += 1;
         curIdx += 1;
 
+        if (TWO_BYTES_OPCODE_PREFIX.find(opcodeByte) !=
+            TWO_BYTES_OPCODE_PREFIX.end()) {
+            opcodeByte = (opcodeByte << 8) + objectSource[curIdx];
+            instructionLen += 1;
+            curIdx += 1;
+        }
+
         // (prefix, opcode) -> (reg, mnemonic)
         std::unordered_map<int, Mnemonic> reg2mnem;
         if (OP_LOOKUP.find(std::make_pair(prefix, opcodeByte)) !=
             OP_LOOKUP.end()) {
             reg2mnem = OP_LOOKUP.at(std::make_pair(prefix, opcodeByte));
+        } else if (prefix == Prefix::REXW &&
+                   OP_LOOKUP.find(std::make_pair(Prefix::REX, opcodeByte)) !=
+                       OP_LOOKUP.end()) {
+            reg2mnem = OP_LOOKUP.at(std::make_pair(Prefix::REX, opcodeByte));
+            prefix = Prefix::REX;
         } else if (prefix == Prefix::REX &&
                    OP_LOOKUP.find(std::make_pair(Prefix::NONE, opcodeByte)) !=
                        OP_LOOKUP.end()) {
@@ -130,7 +142,9 @@ struct State {
             prefix = Prefix::NONE;
         } else {
             throw std::runtime_error(
-                "Unknown combination of the prefix and the opcodeByte\n");
+                "Unknown combination of the prefix and the opcodeByte: (" +
+                std::to_string((int)prefix) + ", " +
+                std::to_string(opcodeByte) + ")");
         }
 
         // We sometimes need reg of modrm to determine the opecode
@@ -227,7 +241,7 @@ struct State {
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
 
-        // parsePrefixInstructions();
+        parsePrefixInstructions();
         parsePrefix();
         parseREX();
         parseOpecode();
@@ -310,6 +324,9 @@ struct State {
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
+
+        std::cout << startIdx << " " << instructionLen << " "
+                  << assemblyInstructionStr << std::endl;
 
         return std::make_tuple(startIdx, instructionLen, to_string(mnemonic),
                                assemblyInstructionStr);
