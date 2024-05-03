@@ -103,7 +103,6 @@ struct State {
             rex = REX(objectSource[curIdx]);
             instructionLen += 1;
             curIdx += 1;
-            std::cout << "HAS REX" << std::endl;
 
             if (rex.rexW) {
                 prefix = Prefix::REXW;
@@ -118,8 +117,6 @@ struct State {
         opcodeByte = objectSource[curIdx];
         instructionLen += 1;
         curIdx += 1;
-
-        std::cout << (int)prefix << " OPOP " << opcodeByte << std::endl;
 
         // (prefix, opcode) -> (reg, mnemonic)
         std::unordered_map<int, Mnemonic> reg2mnem;
@@ -136,11 +133,6 @@ struct State {
                 "Unknown combination of the prefix and the opcodeByte\n");
         }
 
-        for (auto t : reg2mnem) {
-            std::cout << t.first << ": " << to_string(t.second) << ",";
-        }
-        std::cout << std::endl;
-
         // We sometimes need reg of modrm to determine the opecode
         // e.g. 83 /4 -> AND
         //      83 /1 -> OR
@@ -148,11 +140,8 @@ struct State {
             modrmByte = objectSource[curIdx];
         }
 
-        std::cout << (int)prefix << " 0000000 " << opcodeByte << std::endl;
-
         if (modrmByte >= 0) {
             int reg = getRegVal(modrmByte);
-            std::cout << "reg " << reg << std::endl;
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
                                                               : reg2mnem[-1];
         } else {
@@ -160,7 +149,6 @@ struct State {
         }
 
         assemblyInstruction.push_back(to_string(mnemonic));
-        std::cout << 888 << std::endl;
         std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
             OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
         opEnc = std::get<0>(res);
@@ -252,8 +240,6 @@ struct State {
         for (Operand& operand : operands) {
             std::string decodedTranslatedValue;
 
-            // if (operand == nullptr) break;
-
             if (isA_REG(operand)) {
                 decodedTranslatedValue = to_string(operand);
             } else if (isRM(operand) || isREG(operand)) {
@@ -311,20 +297,8 @@ struct State {
                 decodedTranslatedValue = ss.str();
             }
 
-            /*
-            if (hasDisp8) {
-                decodedTranslatedValue += " disp8=" + std::to_string(disp8);
-            }
-
-            if (hasDisp32) {
-                decodedTranslatedValue += " disp32=<UNIMPLEMENTED>";
-            }
-            */
-
             assemblyOperands.push_back(decodedTranslatedValue);
         }
-
-        // if (nullptr in assemblyOperands) throw InvalidTranslationValue();
 
         std::string ao = "";
         for (std::string& a : assemblyOperands) {
@@ -336,10 +310,6 @@ struct State {
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
         }
-        std::cout << startIdx << " " << instructionLen << " "
-                  << assemblyInstructionStr << std::endl;
-        // uint64_t targetAddr = state->markDecoded(startIdx, instructionLen,
-        //                                         assemblyInstructionStr);
 
         return std::make_tuple(startIdx, instructionLen, to_string(mnemonic),
                                assemblyInstructionStr);
