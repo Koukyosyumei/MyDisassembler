@@ -360,6 +360,29 @@ const std::unordered_map<std::pair<Prefix, int>,
 
         // RET
         {{Prefix::NONE, u2d("\xC3")}, {{-1, Mnemonic::RET}}},
+
+        // POP
+        {{Prefix::NONE, u2d("\x8F")}, {{0, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x58")}, {{0, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x59")}, {{1, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5A")}, {{2, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5B")}, {{3, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5C")}, {{4, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5D")}, {{5, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5E")}, {{6, Mnemonic::POP}}},
+        {{Prefix::NONE, u2d("\x5F")}, {{7, Mnemonic::POP}}},
+
+        // PUSH
+        {{Prefix::NONE, u2d("\xFF")}, {{0, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x50")}, {{0, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x51")}, {{1, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x52")}, {{2, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x53")}, {{3, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x54")}, {{4, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x55")}, {{5, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x56")}, {{6, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x57")}, {{7, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x68")}, {{-1, Mnemonic::PUSH}}},
 };
 
 // Lookup table for operand information
