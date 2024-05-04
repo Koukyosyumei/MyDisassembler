@@ -369,9 +369,14 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::NONE, u2d("\xFF")},
          {{0, Mnemonic::INC},
           {1, Mnemonic::DEC},
+          {2, Mnemonic::CALL},
           {4, Mnemonic::JMP},
           {5, Mnemonic::JMP},
           {6, Mnemonic::PUSH}}},
+
+        // CALL
+        {{Prefix::NONE, u2d("\xE8")}, {{-1, Mnemonic::CALL}}},
+        {{Prefix::NONE, u2d("\x9A")}, {{-1, Mnemonic::CALL}}},
 
         // JMP
         {{Prefix::NONE, u2d("\xEB")}, {{-1, Mnemonic::JMP}}},
@@ -1065,6 +1070,12 @@ const std::unordered_map<
          {OpEnc::I, {"iw"}, {Operand::imm16}}},
         {{Prefix::NONE, Mnemonic::RET, u2d("\xCA")},
          {OpEnc::I, {"iw"}, {Operand::imm16}}},
+
+        // CALL
+        {{Prefix::NONE, Mnemonic::CALL, u2d("\xE8")},
+         {OpEnc::D, {}, {Operand::imm32}}},
+        {{Prefix::NONE, Mnemonic::CALL, u2d("\xFF")},
+         {OpEnc::D, {"2"}, {Operand::rm64}}},
 
         // JZ
         {{Prefix::NONE, Mnemonic::JZ, u2d("\x0F\x84")},

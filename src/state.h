@@ -16,6 +16,7 @@
 struct State {
     const std::vector<unsigned char>& objectSource;
 
+    bool hasPrefixInstruction;
     bool hasREX;
     // bool hasModRM;
     bool hasSIB;
@@ -26,8 +27,9 @@ struct State {
     size_t instructionLen;
     size_t prefixOffset;
 
-    int prefixInstructionByte, opcodeByte, modrmByte, sibByte;
+    int opcodeByte, modrmByte, sibByte;
 
+    std::string prefixInstructionStr;
     Mnemonic mnemonic;
     Prefix prefix;
     REX rex;
@@ -46,6 +48,7 @@ struct State {
 
     State(const std::vector<unsigned char>& objectSource)
         : objectSource(objectSource),
+          hasPrefixInstruction(false),
           hasREX(false),
           hasSIB(false),
           hasDisp8(false),
@@ -56,14 +59,14 @@ struct State {
           prefix(Prefix::NONE) {}
 
     void init() {
-        hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
+        hasPrefixInstruction = hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
         curIdx = 0;
         instructionLen = 0;
         prefixOffset = 0;
         prefix = Prefix::NONE;
         // disp8 = 0;
 
-        prefixInstructionByte = opcodeByte = modrmByte = sibByte = -1;
+        opcodeByte = modrmByte = sibByte = -1;
 
         remOps.clear();
         remOps.shrink_to_fit();
@@ -86,10 +89,11 @@ struct State {
 
     void parsePrefixInstructions() {
         int startByte = objectSource[curIdx];
-        if (PREFIX_INSTRUCTIONS_BYTES_SET.find(startByte) !=
-            PREFIX_INSTRUCTIONS_BYTES_SET.end()) {
-            // eat prefix
-            prefixInstructionByte = startByte;
+        if (PREFIX_INSTRUCTIONS_MAP.find(startByte) !=
+            PREFIX_INSTRUCTIONS_MAP.end()) {
+            hasPrefixInstruction = true;
+            prefixInstructionStr = PREFIX_INSTRUCTIONS_MAP.at(startByte);
+            assemblyInstruction.push_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
             curIdx += 1;
