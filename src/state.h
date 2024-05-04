@@ -128,6 +128,7 @@ struct State {
             instructionLen += 1;
             curIdx += 1;
         }
+        std::cout << "OP: " << opcodeByte << std::endl;
 
         // (prefix, opcode) -> (reg, mnemonic)
         std::unordered_map<int, Mnemonic> reg2mnem;
@@ -157,13 +158,21 @@ struct State {
             modrmByte = objectSource[curIdx];
         }
 
+        for (auto kv : reg2mnem) {
+            std::cout << kv.first << ", " << to_string(kv.second) << " - ";
+        }
+        std::cout << std::endl;
+
         if (modrmByte >= 0) {
             int reg = getRegVal(modrmByte);
-            mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem[reg]
-                                                              : reg2mnem[-1];
+            std::cout << "!!!!! " << reg << std::endl;
+            mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem.at(reg)
+                                                              : reg2mnem.at(-1);
         } else {
-            mnemonic = reg2mnem[-1];
+            mnemonic = reg2mnem.at(-1);
         }
+
+        std::cout << "reg: " << modrmByte << " " << to_string(mnemonic) << std::endl;
 
         assemblyInstruction.push_back(to_string(mnemonic));
         if (OPERAND_LOOKUP.find(std::make_tuple(

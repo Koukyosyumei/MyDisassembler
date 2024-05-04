@@ -211,6 +211,10 @@ enum class Mnemonic {
 
 inline std::string to_string(Mnemonic mnemonic) {
     switch (mnemonic) {
+        case Mnemonic::SHLD:
+            return "shld";
+        case Mnemonic::SHRD:
+            return "shrd";
         case Mnemonic::MOV:
             return "mov";
         case Mnemonic::MOVSX:
@@ -311,6 +315,32 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "jcxz";
         case Mnemonic::JECXZ:
             return "jecxz";
+        case Mnemonic::JNB:
+            return "jnb";
+        case Mnemonic::JNBE:
+            return "jnbe";
+        case Mnemonic::JNC:
+            return "jnc";
+        case Mnemonic::JNE:
+            return "jne";
+        case Mnemonic::JNG:
+            return "jng";
+        case Mnemonic::JNGE:
+            return "jnge";
+        case Mnemonic::JNL:
+            return "jnl";
+        case Mnemonic::JNLE:
+            return "jnle";
+        case Mnemonic::JNS:
+            return "jns";
+        case Mnemonic::JNAE:
+            return "jnae";
+        case Mnemonic::JNA:
+            return "jna";
+        case Mnemonic::JZBE:
+            return "jzbe";
+        case Mnemonic::JPO:
+            return "jpo";
         case Mnemonic::CALL:
             return "call";
         case Mnemonic::RET:
@@ -407,6 +437,8 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "stc";
         case Mnemonic::CLC:
             return "clc";
+        case Mnemonic::BSWAP:
+            return "bswap";
         default:
             return "unknown";
     }
