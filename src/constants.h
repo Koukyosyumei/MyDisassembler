@@ -89,6 +89,8 @@ inline std::string to_string(Prefix prefix) {
             return "REX.W";
         case Prefix::REX:
             return "REX";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -606,6 +608,8 @@ inline bool hasModrm(OpEnc openc) {
             return false;
         case OpEnc::S:
             return false;
+        default:
+            return false;
     }
 }
 
@@ -641,6 +645,8 @@ inline std::string to_string(OpEnc openc) {
             return "TD";
         case OpEnc::S:
             return "S";
+        default:
+            return "UNKNOWN";
     }
 }
 

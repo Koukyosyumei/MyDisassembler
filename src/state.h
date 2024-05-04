@@ -13,6 +13,28 @@
 #include "modrm.h"
 #include "table.h"
 
+inline size_t decodeOffset(const std::string& val) {
+    size_t offset;
+
+    offset = stoul(val, nullptr, 16);
+
+    if (val.size() == 8 + 2) {
+        if (offset > 0x7FFFFFFF) {
+            offset -= 0x100000000;
+        }
+    } else if (val.size() == 4 + 2) {
+        if (offset > 0x7FFF) {
+            offset -= 0x10000;
+        }
+    } else if (val.size() == 2 + 2) {
+        if (offset > 0x7F) {
+            offset -= 0x100;
+        }
+    }
+
+    return offset;
+}
+
 struct State {
     const std::vector<unsigned char>& objectSource;
 
@@ -254,8 +276,8 @@ struct State {
     }
 
     // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
-    std::tuple<int, int, Mnemonic, std::string, int> decodeSingleInstruction(
-        int startIdx) {
+    std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
+    decodeSingleInstruction(size_t startIdx) {
         // ############### Initialize ##############################
         init();
         curIdx = startIdx;
@@ -342,12 +364,23 @@ struct State {
         }
         assemblyInstruction.push_back(ao);
 
-        int nextOffset = 0;
-        
-
+        size_t nextOffset = 0;
         std::string assemblyInstructionStr = "";
-        for (std::string& a : assemblyInstruction) {
-            assemblyInstructionStr += " " + a;
+
+        if (isCFMInstructions(mnemonic) && operands.size() == 1 &&
+            isIMM(operands[0])) {
+            nextOffset = decodeOffset(assemblyOperands[0]);
+            size_t labelAddr = startIdx + instructionLen + nextOffset;
+            std::string label = "label_" + std::to_string(labelAddr);
+            assemblyInstructionStr = to_string(mnemonic) + " " + label +
+                                     " ; imm[" + assemblyOperands[0] +
+                                     "] = offset[" +
+                                     std::to_string(nextOffset) + "] = addr[" +
+                                     std::to_string(labelAddr) + "]";
+        } else {
+            for (std::string& a : assemblyInstruction) {
+                assemblyInstructionStr += " " + a;
+            }
         }
 
         std::cout << startIdx << " " << instructionLen << " "

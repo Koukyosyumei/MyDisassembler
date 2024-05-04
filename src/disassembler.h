@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "state.h"
-#include "table.h"
 
 const std::string UNKNOWN_INSTRUCTION = "???";
 
@@ -35,8 +34,9 @@ struct DisAssembler {
     }
 
     uint64_t markDecoded(size_t startIdx, size_t byteLen,
-                         std::string mnemonicStr, std::string instruction) {
-        size_t labelAddr = std::string::npos;
+                         std::string mnemonicStr, std::string instruction,
+                         size_t nextOffset) {
+        size_t labelAddr = startIdx + byteLen + nextOffset;
 
         // skip if this has already been decoded
         std::unordered_set<bool> decodedPath;
@@ -64,47 +64,6 @@ struct DisAssembler {
             runningErrorIdx.clear();
         }
 
-        //
-        if (mnemonicStr == "jmp" || mnemonicStr == "jz" ||
-            mnemonicStr == "jnz" || mnemonicStr == "call") {
-            size_t spacePos = instruction.find(" ");
-            if (spacePos != std::string::npos) {
-                std::string operand = instruction.substr(spacePos + 1);
-                size_t offset;
-                bool validOffset = false;
-                try {
-                    offset = stoul(operand, nullptr, 16);
-                    validOffset = true;
-                } catch (std::invalid_argument &) {
-                    offset = 0;  // Some calls do not have a direct offset
-                }
-
-                if (validOffset) {
-                    if (operand.size() == 8) {
-                        if (offset > 0x7FFFFFFF) {
-                            offset -= 0x100000000;
-                        }
-                    } else if (operand.size() == 4) {
-                        if (offset > 0x7FFF) {
-                            offset -= 0x10000;
-                        }
-                    } else if (operand.size() == 2) {
-                        if (offset > 0x7F) {
-                            offset -= 0x100;
-                        }
-                    }
-
-                    labelAddr = startIdx + byteLen + offset;
-                    labelAddresses.push_back(std::to_string(labelAddr));
-                    std::string label = "label_" + std::to_string(labelAddr);
-                    instruction = mnemonicStr + " " + label + " ; " + operand +
-                                  " = " + std::to_string(offset) +
-                                  " signed = addr[" +
-                                  std::to_string(labelAddr) + "]";
-                }
-            }
-        }
-
         instructions[std::make_pair(startIdx, startIdx + byteLen)] =
             instruction;
         instructionKeys.push_back(std::make_pair(startIdx, startIdx + byteLen));
@@ -123,12 +82,13 @@ struct DisAssembler {
 
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
         State state(objectSource);
-        std::tuple<int, int, std::string, std::string> result =
+        std::tuple<size_t, size_t, Mnemonic, std::string, size_t> result =
             state.decodeSingleInstruction(getCurIdx());
         uint64_t targetAddr =
             markDecoded(std::get<0>(result), std::get<1>(result),
-                        std::get<2>(result), std::get<3>(result));
-        return std::make_pair(std::get<2>(result), targetAddr);
+                        to_string(std::get<2>(result)), std::get<3>(result),
+                        std::get<4>(result));
+        return std::make_pair(to_string(std::get<2>(result)), targetAddr);
     }
 
     int getCurIdx() { return _currentIdx; }
