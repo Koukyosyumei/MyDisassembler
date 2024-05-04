@@ -444,6 +444,18 @@ inline std::string to_string(Mnemonic mnemonic) {
     }
 }
 
+inline bool isCFMInstructions(Mnemonic mnemonic) {
+    return mnemonic == Mnemonic::CALL || mnemonic == Mnemonic::JO ||
+           mnemonic == Mnemonic::JNO || mnemonic == Mnemonic::JNAE ||
+           mnemonic == Mnemonic::JNB || mnemonic == Mnemonic::JZ ||
+           mnemonic == Mnemonic::JNZ || mnemonic == Mnemonic::JNA ||
+           mnemonic == Mnemonic::JZBE || mnemonic == Mnemonic::JS ||
+           mnemonic == Mnemonic::JNS || mnemonic == Mnemonic::JP ||
+           mnemonic == Mnemonic::JPO || mnemonic == Mnemonic::JNGE ||
+           mnemonic == Mnemonic::JNL || mnemonic == Mnemonic::JNG ||
+           mnemonic == Mnemonic::JNLE || mnemonic == Mnemonic::JMP;
+}
+
 enum class Registers {
     RAX,
     RCX,

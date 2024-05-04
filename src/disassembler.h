@@ -35,7 +35,7 @@ struct DisAssembler {
     }
 
     uint64_t markDecoded(size_t startIdx, size_t byteLen,
-                         std::string &instruction) {
+                         std::string mnemonicStr, std::string instruction) {
         size_t labelAddr = std::string::npos;
 
         // skip if this has already been decoded
@@ -47,11 +47,13 @@ struct DisAssembler {
             return labelAddr;
         }
 
+        // mark the decoded regions
         _currentIdx = startIdx + byteLen;
         for (size_t idx = startIdx; idx < startIdx + byteLen; ++idx) {
             _hasDecoded[idx] = true;
         }
 
+        // mark the regions causing errors
         if (!runningErrorIdx.empty()) {
             size_t startErr = runningErrorIdx[0];
             size_t byteLenErr = runningErrorIdx.size();
@@ -62,11 +64,9 @@ struct DisAssembler {
             runningErrorIdx.clear();
         }
 
-        std::string operatorStr = instruction.substr(0, instruction.find(" "));
-        transform(operatorStr.begin(), operatorStr.end(), operatorStr.begin(),
-                  ::tolower);
-        if (operatorStr == "jmp" || operatorStr == "jz" ||
-            operatorStr == "jnz" || operatorStr == "call") {
+        //
+        if (mnemonicStr == "jmp" || mnemonicStr == "jz" ||
+            mnemonicStr == "jnz" || mnemonicStr == "call") {
             size_t spacePos = instruction.find(" ");
             if (spacePos != std::string::npos) {
                 std::string operand = instruction.substr(spacePos + 1);
@@ -76,7 +76,7 @@ struct DisAssembler {
                     offset = stoul(operand, nullptr, 16);
                     validOffset = true;
                 } catch (std::invalid_argument &) {
-                    // Some calls do not have a direct offset
+                    offset = 0;  // Some calls do not have a direct offset
                 }
 
                 if (validOffset) {
@@ -97,11 +97,10 @@ struct DisAssembler {
                     labelAddr = startIdx + byteLen + offset;
                     labelAddresses.push_back(std::to_string(labelAddr));
                     std::string label = "label_" + std::to_string(labelAddr);
-                    // instruction = instructionOp + " " + label + " ; " +
-                    //              operand + " = " + std::to_string(offset) +
-                    //              " signed = addr[" +
-                    //              std::to_string(labelAddr) +
-                    //              "]";
+                    instruction = mnemonicStr + " " + label + " ; " + operand +
+                                  " = " + std::to_string(offset) +
+                                  " signed = addr[" +
+                                  std::to_string(labelAddr) + "]";
                 }
             }
         }
@@ -114,12 +113,21 @@ struct DisAssembler {
         return labelAddr;
     }
 
+    void markError(int startIdx, int byteLen) {
+        _currentIdx = startIdx + byteLen;
+        for (int i = startIdx; i < startIdx + byteLen; i++) {
+            _hasDecoded[i] = false;
+            runningErrorIdx.push_back(i);
+        }
+    }
+
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
         State state(objectSource);
         std::tuple<int, int, std::string, std::string> result =
             state.decodeSingleInstruction(getCurIdx());
-        uint64_t targetAddr = markDecoded(
-            std::get<0>(result), std::get<1>(result), std::get<3>(result));
+        uint64_t targetAddr =
+            markDecoded(std::get<0>(result), std::get<1>(result),
+                        std::get<2>(result), std::get<3>(result));
         return std::make_pair(std::get<2>(result), targetAddr);
     }
 

@@ -172,7 +172,8 @@ struct State {
             mnemonic = reg2mnem.at(-1);
         }
 
-        std::cout << "reg: " << modrmByte << " " << to_string(mnemonic) << std::endl;
+        std::cout << "reg: " << modrmByte << " " << to_string(mnemonic)
+                  << std::endl;
 
         assemblyInstruction.push_back(to_string(mnemonic));
         if (OPERAND_LOOKUP.find(std::make_tuple(
@@ -252,8 +253,8 @@ struct State {
         }
     }
 
-    // startIdx, targetLen, mnemonic, assemblyStr
-    std::tuple<int, int, std::string, std::string> decodeSingleInstruction(
+    // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
+    std::tuple<int, int, Mnemonic, std::string, int> decodeSingleInstruction(
         int startIdx) {
         // ############### Initialize ##############################
         init();
@@ -341,6 +342,9 @@ struct State {
         }
         assemblyInstruction.push_back(ao);
 
+        int nextOffset = 0;
+        
+
         std::string assemblyInstructionStr = "";
         for (std::string& a : assemblyInstruction) {
             assemblyInstructionStr += " " + a;
@@ -349,7 +353,7 @@ struct State {
         std::cout << startIdx << " " << instructionLen << " "
                   << assemblyInstructionStr << std::endl;
 
-        return std::make_tuple(startIdx, instructionLen, to_string(mnemonic),
-                               assemblyInstructionStr);
+        return std::make_tuple(startIdx, instructionLen, mnemonic,
+                               assemblyInstructionStr, nextOffset);
     }
 };
