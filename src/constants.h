@@ -202,7 +202,8 @@ enum class Mnemonic {
     CPUID,
     XCHG,
     STC,
-    CLC
+    CLC,
+    BSWAP,
 };
 
 inline std::string to_string(Mnemonic mnemonic) {
