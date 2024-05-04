@@ -30,7 +30,8 @@ enum class Operand {
     moffs8,
     moffs16,
     moffs32,
-    moffs64
+    moffs64,
+    cl,
 };
 
 inline bool isA_REG(Operand operand) {
@@ -92,6 +93,8 @@ inline std::string to_string(Prefix prefix) {
 }
 
 enum class Mnemonic {
+    SHLD,
+    SHRD,
     MOV,
     MOVSX,
     MOVSXD,
