@@ -362,6 +362,20 @@ const std::unordered_map<std::pair<Prefix, int>,
 
         // RET
         {{Prefix::NONE, u2d("\xC3")}, {{-1, Mnemonic::RET}}},
+        {{Prefix::NONE, u2d("\xCB")}, {{-1, Mnemonic::RET}}},
+        {{Prefix::NONE, u2d("\xC2")}, {{-1, Mnemonic::RET}}},
+        {{Prefix::NONE, u2d("\xCA")}, {{-1, Mnemonic::RET}}},
+
+        {{Prefix::NONE, u2d("\xFF")},
+         {{0, Mnemonic::INC},
+          {1, Mnemonic::DEC},
+          {4, Mnemonic::JMP},
+          {5, Mnemonic::JMP},
+          {6, Mnemonic::PUSH}}},
+
+        // JMP
+        {{Prefix::NONE, u2d("\xEB")}, {{-1, Mnemonic::JMP}}},
+        {{Prefix::NONE, u2d("\xE9")}, {{-1, Mnemonic::JMP}}},
 
         // POP
         {{Prefix::NONE, u2d("\x8F")}, {{0, Mnemonic::POP}}},
@@ -375,7 +389,6 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::NONE, u2d("\x5F")}, {{7, Mnemonic::POP}}},
 
         // PUSH
-        {{Prefix::NONE, u2d("\xFF")}, {{0, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x50")}, {{0, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x51")}, {{1, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x52")}, {{2, Mnemonic::PUSH}}},
@@ -1042,10 +1055,16 @@ const std::unordered_map<
 
         // NOP
         {{Prefix::NONE, Mnemonic::NOP, u2d("\x90")}, {OpEnc::NP, {}, {}}},
+        {{Prefix::NONE, Mnemonic::NOP, u2d("\x0F\x1F")},
+         {OpEnc::M, {"0"}, {Operand::rm32}}},
 
         // RET
         {{Prefix::NONE, Mnemonic::RET, u2d("\xC3")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::RET, u2d("\xCB")}, {OpEnc::NP, {}, {}}},
+        {{Prefix::NONE, Mnemonic::RET, u2d("\xC2")},
+         {OpEnc::I, {"iw"}, {Operand::imm16}}},
+        {{Prefix::NONE, Mnemonic::RET, u2d("\xCA")},
+         {OpEnc::I, {"iw"}, {Operand::imm16}}},
 
         // JZ
         {{Prefix::NONE, Mnemonic::JZ, u2d("\x0F\x84")},
@@ -1065,11 +1084,11 @@ const std::unordered_map<
         {{Prefix::NONE, Mnemonic::JMP, u2d("\xE9")},
          {OpEnc::D, {"cd"}, {Operand::imm32}}},
         {{Prefix::NONE, Mnemonic::JMP, u2d("\xFF")},
-         {OpEnc::M, {}, {Operand::reg}}},
+         {OpEnc::M, {"4"}, {Operand::rm64}}},
 
         // POP
         {{Prefix::NONE, Mnemonic::POP, u2d("\x8F")},
-         {OpEnc::M, {"0"}, {Operand::rm32}}},
+         {OpEnc::M, {"0"}, {Operand::rm64}}},
         {{Prefix::NONE, Mnemonic::POP, u2d("\x58")},
          {OpEnc::O, {"0"}, {Operand::reg32}}},
         {{Prefix::NONE, Mnemonic::POP, u2d("\x59")},
