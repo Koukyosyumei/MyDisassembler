@@ -70,7 +70,7 @@ inline bool is64Bit(Operand operand) {
     return operand == Operand::rm64 || operand == Operand::reg64;
 }
 
-enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI, FD, TD, S };
+enum class OpEnc { I, D, M, O, NP, MC, MI, M1, MR, RM, RMI, OI, FD, TD, S };
 
 enum class Prefix {
     NONE,  // without prefix
@@ -546,6 +546,8 @@ inline bool hasModrm(OpEnc openc) {
             return true;
         case OpEnc::M1:
             return true;
+        case OpEnc::MC:
+            return true;
         case OpEnc::MR:
             return true;
         case OpEnc::RM:
@@ -581,6 +583,8 @@ inline std::string to_string(OpEnc openc) {
             return "M1";
         case OpEnc::MR:
             return "MR";
+        case OpEnc::MC:
+            return "MC";
         case OpEnc::RM:
             return "RM";
         case OpEnc::RMI:
