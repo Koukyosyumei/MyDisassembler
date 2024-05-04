@@ -69,7 +69,7 @@ inline bool is64Bit(Operand operand) {
     return operand == Operand::rm64 || operand == Operand::reg64;
 }
 
-enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI };
+enum class OpEnc { I, D, M, O, NP, MI, M1, MR, RM, RMI, OI, FD, TD };
 
 enum class Prefix {
     NONE,  // without prefix
@@ -77,6 +77,19 @@ enum class Prefix {
     REXW,  // use R8-R15 registers
     REX    // use 64 bit registers
 };
+
+inline std::string to_string(Prefix prefix) {
+    switch (prefix) {
+        case Prefix::NONE:
+            return "none";
+        case Prefix::P66:
+            return "66";
+        case Prefix::REXW:
+            return "REX.W";
+        case Prefix::REX:
+            return "REX";
+    }
+}
 
 enum class Mnemonic {
     MOV,
@@ -524,6 +537,10 @@ inline bool hasModrm(OpEnc openc) {
             return true;
         case OpEnc::OI:
             return false;
+        case OpEnc::FD:
+            return false;
+        case OpEnc::TD:
+            return false;
     }
 }
 
@@ -551,6 +568,10 @@ inline std::string to_string(OpEnc openc) {
             return "RMI";
         case OpEnc::OI:
             return "OI";
+        case OpEnc::FD:
+            return "FD";
+        case OpEnc::TD:
+            return "TD";
     }
 }
 

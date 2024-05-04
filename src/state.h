@@ -143,8 +143,7 @@ struct State {
         } else {
             throw std::runtime_error(
                 "Unknown combination of the prefix and the opcodeByte: (" +
-                std::to_string((int)prefix) + ", " +
-                std::to_string(opcodeByte) + ")");
+                to_string(prefix) + ", " + std::to_string(opcodeByte) + ")");
         }
 
         // We sometimes need reg of modrm to determine the opecode
@@ -163,11 +162,20 @@ struct State {
         }
 
         assemblyInstruction.push_back(to_string(mnemonic));
-        std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>> res =
-            OPERAND_LOOKUP.at(std::make_tuple(prefix, mnemonic, opcodeByte));
-        opEnc = std::get<0>(res);
-        remOps = std::get<1>(res);
-        operands = std::get<2>(res);
+        if (OPERAND_LOOKUP.find(std::make_tuple(
+                prefix, mnemonic, opcodeByte)) != OPERAND_LOOKUP.end()) {
+            std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>
+                res = OPERAND_LOOKUP.at(
+                    std::make_tuple(prefix, mnemonic, opcodeByte));
+            opEnc = std::get<0>(res);
+            remOps = std::get<1>(res);
+            operands = std::get<2>(res);
+        } else {
+            throw std::runtime_error(
+                "Unknown combination of prefix, mnemonic and opcodeByte: (" +
+                to_string(prefix) + ", " + to_string(mnemonic) + ", " +
+                std::to_string(opcodeByte) + ")");
+        }
     }
 
     void parseModRM() {

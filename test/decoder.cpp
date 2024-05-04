@@ -518,7 +518,7 @@ TEST(disas, TWOBYTE) {
     
     disas._currentIdx = 12;
     res = disas.decodeSingleInstruction();
-    ASSERT_EQ(res.first, "movsx");
-    ASSERT_EQ(disas.instructions[std::make_pair(12, 15)], " movsx  rax ebx");
+    ASSERT_EQ(res.first, "movsxd");
+    ASSERT_EQ(disas.instructions[std::make_pair(12, 15)], " movsxd  rax ebx");
 }
 
