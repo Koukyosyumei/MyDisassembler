@@ -378,8 +378,9 @@ struct State {
                                      std::to_string(nextOffset) + "] = addr[" +
                                      std::to_string(labelAddr) + "]";
         } else {
-            for (std::string& a : assemblyInstruction) {
-                assemblyInstructionStr += " " + a;
+            assemblyInstructionStr = assemblyInstruction[0];
+            for (int i = 1; i < assemblyInstruction.size(); i++) {
+                assemblyInstructionStr += " " + assemblyInstruction[i];
             }
         }
 
