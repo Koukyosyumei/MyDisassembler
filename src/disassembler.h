@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "error.h"
 #include "state.h"
 
 const std::string UNKNOWN_INSTRUCTION = "???";
@@ -32,6 +33,8 @@ struct DisAssembler {
           _completedRecursiveDescent(false) {
         _hasDecoded = std::vector<bool>(objectSource.size(), false);
     }
+
+    virtual void disas() = 0;
 
     uint64_t markDecoded(size_t startIdx, size_t byteLen,
                          std::string mnemonicStr, std::string instruction,
@@ -104,7 +107,67 @@ struct DisAssembler {
         return countFalse == 0;  // && countNone == 0;
     }
 
-    bool isSweepComplete() {
-        return _currentIdx >= static_cast<int>(objectSource.size());
+    bool isSweepComplete() { return _currentIdx >= objectSource.size(); }
+};
+
+struct LinearSweepDisAssembler : public DisAssembler {
+    using DisAssembler::DisAssembler;
+
+    void disas() {
+        size_t instCount = 1;
+        size_t curIdx;
+        std::string message;
+
+        while (!isSweepComplete()) {
+            curIdx = getCurIdx();
+            try {
+                State state(objectSource);
+                std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
+                    result = state.decodeSingleInstruction(curIdx);
+                markDecoded(std::get<0>(result), std::get<1>(result),
+                            to_string(std::get<2>(result)), std::get<3>(result),
+                            std::get<4>(result));
+                instCount++;
+            } catch (InvalidOperandError &) {
+                std::string message;
+                try {
+                    message = "Unable to parse byte as an operand @ position " +
+                              std::to_string(curIdx) + " (byte:" +
+                              std::to_string(objectSource.at(getCurIdx())) +
+                              ").";
+                } catch (...) {
+                    message = "Unable to parse byte as an operand @ position " +
+                              std::to_string(curIdx) + " (byte).";
+                }
+                std::cerr << message << std::endl;
+                markError(curIdx, 1);
+            } catch (OPCODE_LOOKUP_ERROR &) {
+                std::string message;
+                try {
+                    message = "Unable to parse byte as an opcode @ position " +
+                              std::to_string(curIdx) + " (byte:" +
+                              std::to_string(objectSource.at(getCurIdx())) +
+                              ").";
+                } catch (...) {
+                    message = "Unable to parse byte as an opcode @ position " +
+                              std::to_string(curIdx) + " (byte:).";
+                }
+                std::cerr << message << std::endl;
+                markError(curIdx, 1);
+            } catch (...) {
+                std::string message;
+                try {
+                    message = "Unable to parse byte @ position " +
+                              std::to_string(curIdx) + " (byte:" +
+                              std::to_string(objectSource.at(getCurIdx())) +
+                              ").";
+                } catch (...) {
+                    message = "Unable to parse byte @ position " +
+                              std::to_string(curIdx) + " (byte).";
+                }
+                std::cerr << message << std::endl;
+                break;
+            }
+        }
     }
 };
