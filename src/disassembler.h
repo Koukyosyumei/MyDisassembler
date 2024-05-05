@@ -36,9 +36,9 @@ struct DisAssembler {
 
     virtual void disas() = 0;
 
-    uint64_t markDecoded(size_t startIdx, size_t byteLen,
-                         std::string mnemonicStr, std::string instruction,
-                         long long nextOffset) {
+    uint64_t storeInstruction(size_t startIdx, size_t byteLen,
+                              std::string mnemonicStr, std::string instruction,
+                              long long nextOffset) {
         size_t labelAddr =
             (size_t)((long long)startIdx + (long long)byteLen + nextOffset);
 
@@ -76,7 +76,7 @@ struct DisAssembler {
         return labelAddr;
     }
 
-    void markError(int startIdx, int byteLen) {
+    void storeError(int startIdx, int byteLen) {
         _currentIdx = startIdx + byteLen;
         for (int i = startIdx; i < startIdx + byteLen; i++) {
             _hasDecoded[i] = false;
@@ -89,9 +89,9 @@ struct DisAssembler {
         std::tuple<size_t, size_t, Mnemonic, std::string, size_t> result =
             state.decodeSingleInstruction(getCurIdx());
         uint64_t targetAddr =
-            markDecoded(std::get<0>(result), std::get<1>(result),
-                        to_string(std::get<2>(result)), std::get<3>(result),
-                        std::get<4>(result));
+            storeInstruction(std::get<0>(result), std::get<1>(result),
+                             to_string(std::get<2>(result)),
+                             std::get<3>(result), std::get<4>(result));
         return std::make_pair(to_string(std::get<2>(result)), targetAddr);
     }
 
@@ -124,23 +124,15 @@ struct LinearSweepDisAssembler : public DisAssembler {
                 State state(objectSource);
                 std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
                     result = state.decodeSingleInstruction(curIdx);
-                markDecoded(std::get<0>(result), std::get<1>(result),
-                            to_string(std::get<2>(result)), std::get<3>(result),
-                            std::get<4>(result));
+                storeInstruction(std::get<0>(result), std::get<1>(result),
+                                 to_string(std::get<2>(result)),
+                                 std::get<3>(result), std::get<4>(result));
                 instCount++;
             } catch (InvalidOperandError &) {
-                std::string message;
-                try {
-                    message = "Unable to parse byte as an operand @ position " +
-                              std::to_string(curIdx) + " (byte:" +
-                              std::to_string(objectSource.at(getCurIdx())) +
-                              ").";
-                } catch (...) {
-                    message = "Unable to parse byte as an operand @ position " +
-                              std::to_string(curIdx) + " (byte).";
-                }
-                std::cerr << message << std::endl;
-                markError(curIdx, 1);
+                std::cerr << "Unable to parse byte as an operand @ position " +
+                                 std::to_string(curIdx)
+                          << std::endl;
+                storeError(curIdx, 1);
             } catch (OPCODE_LOOKUP_ERROR &) {
                 std::string message;
                 try {
@@ -153,7 +145,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
                               std::to_string(curIdx) + " (byte:).";
                 }
                 std::cerr << message << std::endl;
-                markError(curIdx, 1);
+                storeError(curIdx, 1);
             } catch (...) {
                 std::string message;
                 try {
