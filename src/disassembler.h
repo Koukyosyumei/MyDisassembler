@@ -1,3 +1,4 @@
+#pragma once
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -7,85 +8,81 @@
 #include <unordered_set>
 #include <vector>
 
-#include "error.h"
 #include "state.h"
 
-const std::string UNKNOWN_INSTRUCTION = "???";
+const std::string UNKNOWN_INSTRUCTION = "UNKNOWN-INSTRUCTION";
 
 struct DisAssembler {
     std::vector<bool>
-        _hasDecoded;  // bool array indicating which bytes have been decoded
+        isDone;  // bool array indicating which bytes have been decoded
     const std::vector<unsigned char>
-        &objectSource;   // byte array of the object source
+        &binaryBytes;    // byte array of the object source
     size_t _currentIdx;  // the current index to be decoded
     std::unordered_map<std::pair<size_t, size_t>, std::string>
-        instructions;  // mapping of index to instructions
+        disassembledInstructions;  // mapping of index to
+                                   // disassembledInstructions
     std::vector<std::pair<size_t, size_t>> instructionKeys;
     std::unordered_map<size_t, size_t> instructionLens;
     std::vector<size_t> runningErrorIdx;  // keep track of error bytes indexes
     std::vector<std::string> labelAddresses;
-    std::vector<size_t> deferAddresses;
-    bool _completedRecursiveDescent;
 
-    DisAssembler(const std::vector<unsigned char> &objectSource)
-        : objectSource(objectSource),
-          _currentIdx(0),
-          _completedRecursiveDescent(false) {
-        _hasDecoded = std::vector<bool>(objectSource.size(), false);
+    DisAssembler(const std::vector<unsigned char> &binaryBytes)
+        : binaryBytes(binaryBytes), _currentIdx(0) {
+        isDone = std::vector<bool>(binaryBytes.size(), false);
     }
 
     virtual void disas() = 0;
 
-    uint64_t storeInstruction(size_t startIdx, size_t byteLen,
+    uint64_t storeInstruction(size_t startIdx, size_t instructionLength,
                               std::string mnemonicStr, std::string instruction,
                               long long nextOffset) {
-        size_t labelAddr =
-            (size_t)((long long)startIdx + (long long)byteLen + nextOffset);
+        size_t labelAddr = (size_t)((long long)startIdx +
+                                    (long long)instructionLength + nextOffset);
 
         // skip if this has already been decoded
-        std::unordered_set<bool> decodedPath;
-        for (size_t idx = startIdx; idx < startIdx + byteLen; ++idx) {
-            decodedPath.insert(_hasDecoded[idx]);
-        }
-        if (decodedPath.count(true) > 0) {
-            return labelAddr;
+        for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
+            if (isDone[idx]) {
+                return labelAddr;
+            }
         }
 
         // mark the decoded regions
-        _currentIdx = startIdx + byteLen;
-        for (size_t idx = startIdx; idx < startIdx + byteLen; ++idx) {
-            _hasDecoded[idx] = true;
+        _currentIdx = startIdx + instructionLength;
+        for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
+            isDone[idx] = true;
         }
 
         // mark the regions causing errors
         if (!runningErrorIdx.empty()) {
             size_t startErr = runningErrorIdx[0];
-            size_t byteLenErr = runningErrorIdx.size();
-            instructions[std::make_pair(startErr, startErr + byteLenErr)] =
+            size_t instructionLengthErr = runningErrorIdx.size();
+            disassembledInstructions[std::make_pair(
+                startErr, startErr + instructionLengthErr)] =
                 UNKNOWN_INSTRUCTION;
             instructionKeys.push_back(
-                std::make_pair(startErr, startErr + byteLenErr));
+                std::make_pair(startErr, startErr + instructionLengthErr));
             runningErrorIdx.clear();
         }
 
-        instructions[std::make_pair(startIdx, startIdx + byteLen)] =
-            instruction;
-        instructionKeys.push_back(std::make_pair(startIdx, startIdx + byteLen));
-        instructionLens[startIdx] = byteLen;
+        disassembledInstructions[std::make_pair(
+            startIdx, startIdx + instructionLength)] = instruction;
+        instructionKeys.push_back(
+            std::make_pair(startIdx, startIdx + instructionLength));
+        instructionLens[startIdx] = instructionLength;
 
         return labelAddr;
     }
 
-    void storeError(int startIdx, int byteLen) {
-        _currentIdx = startIdx + byteLen;
-        for (int i = startIdx; i < startIdx + byteLen; i++) {
-            _hasDecoded[i] = false;
+    void storeError(int startIdx, int instructionLength) {
+        _currentIdx = startIdx + instructionLength;
+        for (int i = startIdx; i < startIdx + instructionLength; i++) {
+            isDone[i] = false;
             runningErrorIdx.push_back(i);
         }
     }
 
     std::pair<std::string, uint64_t> decodeSingleInstruction() {
-        State state(objectSource);
+        State state(binaryBytes);
         std::tuple<size_t, size_t, Mnemonic, std::string, size_t> result =
             state.decodeSingleInstruction(getCurIdx());
         uint64_t targetAddr =
@@ -97,17 +94,16 @@ struct DisAssembler {
 
     int getCurIdx() { return _currentIdx; }
 
-    bool hasDecoded(int idx) { return _hasDecoded[idx]; }
+    bool hasDecoded(int idx) { return isDone[idx]; }
 
     bool isComplete() {
-        int countFalse =
-            std::count(_hasDecoded.begin(), _hasDecoded.end(), false);
-        // int countNone = std::count(_hasDecoded.begin(), _hasDecoded.end(),
+        int countFalse = std::count(isDone.begin(), isDone.end(), false);
+        // int countNone = std::count(isDone.begin(), isDone.end(),
         // nullptr);
         return countFalse == 0;  // && countNone == 0;
     }
 
-    bool isSweepComplete() { return _currentIdx >= objectSource.size(); }
+    bool isSweepComplete() { return _currentIdx >= binaryBytes.size(); }
 };
 
 struct LinearSweepDisAssembler : public DisAssembler {
@@ -121,7 +117,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
         while (!isSweepComplete()) {
             curIdx = getCurIdx();
             try {
-                State state(objectSource);
+                State state(binaryBytes);
                 std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
                     result = state.decodeSingleInstruction(curIdx);
                 storeInstruction(std::get<0>(result), std::get<1>(result),
@@ -138,7 +134,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
                 try {
                     message = "Unable to parse byte as an opcode @ position " +
                               std::to_string(curIdx) + " (byte:" +
-                              std::to_string(objectSource.at(getCurIdx())) +
+                              std::to_string(binaryBytes.at(getCurIdx())) +
                               ").";
                 } catch (...) {
                     message = "Unable to parse byte as an opcode @ position " +
@@ -151,7 +147,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
                 try {
                     message = "Unable to parse byte @ position " +
                               std::to_string(curIdx) + " (byte:" +
-                              std::to_string(objectSource.at(getCurIdx())) +
+                              std::to_string(binaryBytes.at(getCurIdx())) +
                               ").";
                 } catch (...) {
                     message = "Unable to parse byte @ position " +

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "constants.h"
+#include "error.h"
 #include "modrm.h"
 #include "table.h"
 
@@ -172,7 +173,7 @@ struct State {
             reg2mnem = OP_LOOKUP.at(std::make_pair(Prefix::NONE, opcodeByte));
             prefix = Prefix::NONE;
         } else {
-            throw std::runtime_error(
+            throw OPCODE_LOOKUP_ERROR(
                 "Unknown combination of the prefix and the opcodeByte: (" +
                 to_string(prefix) + ", " + std::to_string(opcodeByte) + ")");
         }
@@ -211,7 +212,7 @@ struct State {
             remOps = std::get<1>(res);
             operands = std::get<2>(res);
         } else {
-            throw std::runtime_error(
+            throw OPERAND_LOOKUP_ERROR(
                 "Unknown combination of prefix, mnemonic and opcodeByte: (" +
                 to_string(prefix) + ", " + to_string(mnemonic) + ", " +
                 std::to_string(opcodeByte) + ")");
