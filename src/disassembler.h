@@ -35,8 +35,9 @@ struct DisAssembler {
 
     uint64_t markDecoded(size_t startIdx, size_t byteLen,
                          std::string mnemonicStr, std::string instruction,
-                         size_t nextOffset) {
-        size_t labelAddr = startIdx + byteLen + nextOffset;
+                         long long nextOffset) {
+        size_t labelAddr =
+            (size_t)((long long)startIdx + (long long)byteLen + nextOffset);
 
         // skip if this has already been decoded
         std::unordered_set<bool> decodedPath;

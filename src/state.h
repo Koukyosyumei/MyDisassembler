@@ -13,10 +13,12 @@
 #include "modrm.h"
 #include "table.h"
 
-inline size_t decodeOffset(const std::string& val) {
-    size_t offset;
+inline long long decodeOffset(const std::string& val) {
+    long long offset;
 
+    std::cout << "val: " << val << std::endl;
     offset = stoul(val, nullptr, 16);
+    std::cout << "offset: " << offset << std::endl;
 
     if (val.size() == 8 + 2) {
         if (offset > 0x7FFFFFFF) {
@@ -27,10 +29,12 @@ inline size_t decodeOffset(const std::string& val) {
             offset -= 0x10000;
         }
     } else if (val.size() == 2 + 2) {
+        std::cout << 123 << std::endl;
         if (offset > 0x7F) {
             offset -= 0x100;
         }
     }
+    std::cout << "ad offset: " << offset << std::endl;
 
     return offset;
 }
@@ -276,7 +280,7 @@ struct State {
     }
 
     // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
-    std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
+    std::tuple<size_t, size_t, Mnemonic, std::string, long long>
     decodeSingleInstruction(size_t startIdx) {
         // ############### Initialize ##############################
         init();
@@ -364,19 +368,17 @@ struct State {
         }
         assemblyInstruction.push_back(ao);
 
-        size_t nextOffset = 0;
+        long long nextOffset = 0;
         std::string assemblyInstructionStr = "";
 
         if (isCFMInstructions(mnemonic) && operands.size() == 1 &&
             isIMM(operands[0])) {
             nextOffset = decodeOffset(assemblyOperands[0]);
-            size_t labelAddr = startIdx + instructionLen + nextOffset;
-            std::string label = "label_" + std::to_string(labelAddr);
-            assemblyInstructionStr = to_string(mnemonic) + " " + label +
-                                     " ; imm[" + assemblyOperands[0] +
-                                     "] = offset[" +
-                                     std::to_string(nextOffset) + "] = addr[" +
-                                     std::to_string(labelAddr) + "]";
+            long long labelAddr = ((long long)startIdx) +
+                                  ((long long)instructionLen) + nextOffset;
+            assemblyInstructionStr =
+                to_string(mnemonic) + " " + std::to_string(labelAddr) +
+                " ; relative offset = " + std::to_string(nextOffset);
         } else {
             assemblyInstructionStr = assemblyInstruction[0];
             for (int i = 1; i < assemblyInstruction.size(); i++) {
