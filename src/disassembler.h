@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -124,38 +125,10 @@ struct LinearSweepDisAssembler : public DisAssembler {
                                  to_string(std::get<2>(result)),
                                  std::get<3>(result), std::get<4>(result));
                 instCount++;
-            } catch (InvalidOperandError &) {
-                std::cerr << "Unable to parse byte as an operand @ position " +
-                                 std::to_string(curIdx)
+            } catch (const std::exception &e) {
+                std::cerr << std::to_string(curIdx) << ": " << e.what()
                           << std::endl;
                 storeError(curIdx, 1);
-            } catch (OPCODE_LOOKUP_ERROR &) {
-                std::string message;
-                try {
-                    message = "Unable to parse byte as an opcode @ position " +
-                              std::to_string(curIdx) + " (byte:" +
-                              std::to_string(binaryBytes.at(getCurIdx())) +
-                              ").";
-                } catch (...) {
-                    message = "Unable to parse byte as an opcode @ position " +
-                              std::to_string(curIdx) + " (byte:).";
-                }
-                std::cerr << message << std::endl;
-                storeError(curIdx, 1);
-            } catch (...) {
-                std::string message;
-                try {
-                    message = "Unable to parse byte @ position " +
-                              std::to_string(curIdx) + " (byte:" +
-                              std::to_string(binaryBytes.at(getCurIdx())) +
-                              ").";
-                } catch (...) {
-                    message = "Unable to parse byte @ position " +
-                              std::to_string(curIdx) + " (byte).";
-                }
-                std::cerr << message << std::endl;
-                storeError(curIdx, 1);
-                // break;
             }
         }
     }

@@ -16,4 +16,17 @@ typedef struct {
     uint16_t e_shentsize;
     uint16_t e_shnum;
     uint16_t e_shstrndx;
-} ELF64_HEADER;
+} ELF64_FILE_HEADER;
+
+typedef struct {
+    uint32_t sh_name;
+    uint32_t sh_type; 
+    uint64_t sh_flags;  
+    uint64_t sh_addr;  
+    uint64_t sh_offset; 
+    uint64_t sh_size; 
+    uint32_t sh_link; 
+    uint32_t sh_info; 
+    uint64_t sh_addralign; 
+    uint64_t sh_entsize; 
+} ELF64_SECTION_HEADER;
