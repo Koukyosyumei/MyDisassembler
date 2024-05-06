@@ -154,7 +154,8 @@ struct LinearSweepDisAssembler : public DisAssembler {
                               std::to_string(curIdx) + " (byte).";
                 }
                 std::cerr << message << std::endl;
-                break;
+                storeError(curIdx, 1);
+                // break;
             }
         }
     }
