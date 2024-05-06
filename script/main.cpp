@@ -42,12 +42,6 @@ int main(int argc, char* argv[]) {
     std::copy_n(binaryBytes.begin(), sizeof(header),
                 reinterpret_cast<unsigned char*>(&header));
 
-    std::cout << "e_phoff: " << (int)header.e_phoff << std::endl;
-    std::cout << "e_shoff: " << (int)header.e_shoff << std::endl;
-    std::cout << "e_shnum: " << (int)header.e_shnum << std::endl;
-    std::cout << "e_shentsize: " << (int)header.e_shentsize << std::endl;
-    std::cout << "e_phentsize: " << (int)header.e_phentsize << std::endl;
-
     ELF64_SECTION_HEADER shstr;
     std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
                     (int)header.e_shstrndx * (int)header.e_shentsize,
@@ -62,8 +56,6 @@ int main(int argc, char* argv[]) {
         std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
                         sid * (int)header.e_shentsize,
                     sizeof(sh), reinterpret_cast<unsigned char*>(&sh));
-        std::cout << "ss " << (int)sh.sh_offset << " " << (int)sh.sh_size
-                  << std::endl;
         std::string section_name = getStringFromOffset(
             binaryBytes, (int)shstr.sh_offset + (int)sh.sh_name);
         section_headers.emplace_back(sh);
@@ -76,12 +68,17 @@ int main(int argc, char* argv[]) {
     std::vector<unsigned char> text_section_binaryBytes(
         binaryBytes.begin() + text_section_offset,
         binaryBytes.begin() + text_section_offset + text_section_size);
+
     LinearSweepDisAssembler da(text_section_binaryBytes);
     da.disas();
 
-    std::cout << da.disassembledInstructions.size() << std::endl;
-    for (const auto& di : da.disassembledInstructions) {
-        std::cout << di.first.first << "-" << di.first.second << ": "
-                  << di.second << std::endl;
+    std::sort(da.instructionKeys.begin(), da.instructionKeys.end());
+
+    for (const std::pair<size_t, size_t> k : da.instructionKeys) {
+        if (da.disassembledInstructions.find(k) !=
+            da.disassembledInstructions.end()) {
+            std::cout << k.first << ": " << da.disassembledInstructions.at(k)
+                      << std::endl;
+        }
     }
 }
