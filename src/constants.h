@@ -134,20 +134,10 @@ enum class Mnemonic {
     LOOP,
     JZ,
     JNZ,
-    JA,
-    JAE,
-    JB,
-    JBE,
-    JG,
-    JGE,
-    JL,
-    JLE,
     JP,
-    JNP,
     JO,
     JNO,
     JS,
-    JC,
     JCXZ,
     JECXZ,
     JNB,
@@ -296,34 +286,14 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "jz";
         case Mnemonic::JNZ:
             return "jnz";
-        case Mnemonic::JA:
-            return "ja";
-        case Mnemonic::JAE:
-            return "jae";
-        case Mnemonic::JB:
-            return "jb";
-        case Mnemonic::JBE:
-            return "jbe";
-        case Mnemonic::JG:
-            return "jg";
-        case Mnemonic::JGE:
-            return "jge";
-        case Mnemonic::JL:
-            return "jl";
-        case Mnemonic::JLE:
-            return "jle";
         case Mnemonic::JP:
             return "jp";
-        case Mnemonic::JNP:
-            return "jnp";
         case Mnemonic::JO:
             return "jo";
         case Mnemonic::JNO:
             return "jno";
         case Mnemonic::JS:
             return "js";
-        case Mnemonic::JC:
-            return "jc";
         case Mnemonic::JCXZ:
             return "jcxz";
         case Mnemonic::JECXZ:
