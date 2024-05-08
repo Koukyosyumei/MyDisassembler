@@ -39,17 +39,8 @@ inline long long decodeOffset(const std::string& val) {
 struct State {
     const std::vector<unsigned char>& objectSource;
 
-    bool hasPrefixInstruction;
-    bool hasREX;
-    // bool hasModRM;
-    bool hasSIB;
-    bool hasDisp8;
-    bool hasDisp32;
-
-    size_t curIdx;
-    size_t instructionLen;
-    size_t prefixOffset;
-
+    bool hasPrefixInstruction, hasREX, hasSIB, hasDisp8, hasDisp32;
+    size_t curIdx, instructionLen, prefixOffset;
     int opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
@@ -63,8 +54,7 @@ struct State {
     std::vector<std::string> remOps;
     std::vector<Operand> operands;
 
-    std::string disp8;
-    std::string disp32;
+    std::string disp8, disp32;
 
     std::vector<std::string> assemblyInstruction;
     std::vector<std::string> assemblyOperands;
@@ -87,7 +77,6 @@ struct State {
         instructionLen = 0;
         prefixOffset = 0;
         prefix = Prefix::NONE;
-        // disp8 = 0;
 
         opcodeByte = modrmByte = sibByte = -1;
 
@@ -180,7 +169,6 @@ struct State {
             modrmByte = objectSource[curIdx];
         }
 
-
         if (modrmByte >= 0) {
             int reg = getRegVal(modrmByte);
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem.at(reg)
@@ -268,8 +256,8 @@ struct State {
     }
 
     // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
-    std::tuple<size_t, size_t, Mnemonic, std::string, long long>
-    decodeSingleInstruction(size_t startIdx) {
+    std::tuple<size_t, size_t, Mnemonic, std::string, long long> step(
+        size_t startIdx) {
         // ############### Initialize ##############################
         init();
         curIdx = startIdx;

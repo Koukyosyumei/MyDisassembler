@@ -72,9 +72,9 @@ int main(int argc, char* argv[]) {
     LinearSweepDisAssembler da(text_section_binaryBytes);
     da.disas();
 
-    std::sort(da.instructionKeys.begin(), da.instructionKeys.end());
+    std::sort(da.disassembledPositions.begin(), da.disassembledPositions.end());
 
-    for (const std::pair<size_t, size_t> k : da.instructionKeys) {
+    for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
         if (da.disassembledInstructions.find(k) !=
             da.disassembledInstructions.end()) {
             std::cout << k.first << ": " << da.disassembledInstructions.at(k)

@@ -15,21 +15,24 @@ const std::string UNKNOWN_INSTRUCTION = "UNKNOWN-INSTRUCTION";
 
 struct DisAssembler {
     std::vector<bool>
-        isDone;  // bool array indicating which bytes have been decoded
+        isSuccessfullyDisAssembled;  // bool array indicating which
+                                     // bytes have been decoded
     const std::vector<unsigned char>
-        &binaryBytes;    // byte array of the object source
-    size_t _currentIdx;  // the current index to be decoded
+        &binaryBytes;  // byte array of the object source
+
+    size_t curIdx;  // the current index to be decoded
+
+    std::vector<std::pair<size_t, size_t>> disassembledPositions;
     std::unordered_map<std::pair<size_t, size_t>, std::string>
         disassembledInstructions;  // mapping of index to
                                    // disassembledInstructions
-    std::vector<std::pair<size_t, size_t>> instructionKeys;
-    std::unordered_map<size_t, size_t> instructionLens;
-    std::vector<size_t> runningErrorIdx;  // keep track of error bytes indexes
-    std::vector<std::string> labelAddresses;
+    std::unordered_map<size_t, size_t> disassembledInstructionsLength;
+    std::vector<size_t> errorIdxs;  // keep track of error bytes indexes
 
     DisAssembler(const std::vector<unsigned char> &binaryBytes)
-        : binaryBytes(binaryBytes), _currentIdx(0) {
-        isDone = std::vector<bool>(binaryBytes.size(), false);
+        : binaryBytes(binaryBytes), curIdx(0) {
+        isSuccessfullyDisAssembled =
+            std::vector<bool>(binaryBytes.size(), false);
     }
 
     virtual void disas() = 0;
@@ -42,89 +45,85 @@ struct DisAssembler {
 
         // skip if this has already been decoded
         for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
-            if (isDone[idx]) {
+            if (isSuccessfullyDisAssembled[idx]) {
                 return labelAddr;
             }
         }
 
         // mark the decoded regions
-        _currentIdx = startIdx + instructionLength;
+        curIdx = startIdx + instructionLength;
         for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
-            isDone[idx] = true;
+            isSuccessfullyDisAssembled[idx] = true;
         }
 
         // mark the regions causing errors
-        if (!runningErrorIdx.empty()) {
-            size_t startErr = runningErrorIdx[0];
-            size_t instructionLengthErr = runningErrorIdx.size();
+        if (!errorIdxs.empty()) {
+            size_t startErr = errorIdxs[0];
+            size_t instructionLengthErr = errorIdxs.size();
             disassembledInstructions[std::make_pair(
                 startErr, startErr + instructionLengthErr)] =
                 UNKNOWN_INSTRUCTION;
-            instructionKeys.push_back(
+            disassembledPositions.push_back(
                 std::make_pair(startErr, startErr + instructionLengthErr));
-            runningErrorIdx.clear();
+            errorIdxs.clear();
         }
 
         disassembledInstructions[std::make_pair(
             startIdx, startIdx + instructionLength)] = instruction;
-        instructionKeys.push_back(
+        disassembledPositions.push_back(
             std::make_pair(startIdx, startIdx + instructionLength));
-        instructionLens[startIdx] = instructionLength;
+        disassembledInstructionsLength[startIdx] = instructionLength;
 
         return labelAddr;
     }
 
     void storeError(int startIdx, int instructionLength) {
-        _currentIdx = startIdx + instructionLength;
+        curIdx = startIdx + instructionLength;
         for (int i = startIdx; i < startIdx + instructionLength; i++) {
-            isDone[i] = false;
-            runningErrorIdx.push_back(i);
+            isSuccessfullyDisAssembled[i] = false;
+            errorIdxs.push_back(i);
         }
     }
 
-    std::pair<std::string, uint64_t> decodeSingleInstruction() {
+    std::pair<std::string, uint64_t> step() {
         State state(binaryBytes);
-        std::tuple<size_t, size_t, Mnemonic, std::string, size_t> result =
-            state.decodeSingleInstruction(getCurIdx());
-        uint64_t targetAddr =
-            storeInstruction(std::get<0>(result), std::get<1>(result),
-                             to_string(std::get<2>(result)),
-                             std::get<3>(result), std::get<4>(result));
-        return std::make_pair(to_string(std::get<2>(result)), targetAddr);
+        std::tuple<size_t, size_t, Mnemonic, std::string, size_t> instruction =
+            state.step(getCurIdx());
+        uint64_t targetAddr = storeInstruction(
+            std::get<0>(instruction), std::get<1>(instruction),
+            to_string(std::get<2>(instruction)), std::get<3>(instruction),
+            std::get<4>(instruction));
+        return std::make_pair(to_string(std::get<2>(instruction)), targetAddr);
     }
 
-    int getCurIdx() { return _currentIdx; }
+    int getCurIdx() { return curIdx; }
 
-    bool hasDecoded(int idx) { return isDone[idx]; }
+    bool hasDecoded(int idx) { return isSuccessfullyDisAssembled[idx]; }
 
     bool isComplete() {
-        int countFalse = std::count(isDone.begin(), isDone.end(), false);
-        // int countNone = std::count(isDone.begin(), isDone.end(),
-        // nullptr);
-        return countFalse == 0;  // && countNone == 0;
+        return std::count(isSuccessfullyDisAssembled.begin(),
+                          isSuccessfullyDisAssembled.end(), false) == 0;
     }
 
-    bool isSweepComplete() { return _currentIdx >= binaryBytes.size(); }
+    bool isSweepComplete() { return curIdx >= binaryBytes.size(); }
 };
 
 struct LinearSweepDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
     void disas() {
-        size_t instCount = 1;
         size_t curIdx;
-        std::string message;
 
         while (!isSweepComplete()) {
             curIdx = getCurIdx();
             try {
                 State state(binaryBytes);
                 std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
-                    result = state.decodeSingleInstruction(curIdx);
-                storeInstruction(std::get<0>(result), std::get<1>(result),
-                                 to_string(std::get<2>(result)),
-                                 std::get<3>(result), std::get<4>(result));
-                instCount++;
+                    instruction = state.step(curIdx);
+                storeInstruction(
+                    std::get<0>(instruction), std::get<1>(instruction),
+                    to_string(std::get<2>(instruction)),
+                    std::get<3>(instruction), std::get<4>(instruction));
             } catch (const std::exception &e) {
                 std::cerr << std::to_string(curIdx) << ": " << e.what()
                           << std::endl;
