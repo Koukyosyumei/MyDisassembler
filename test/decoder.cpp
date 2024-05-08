@@ -7,12 +7,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "disassembler.h"
 
+const std::unordered_map<long long, std::string> addr2symbol;
+
 TEST(disas, ONE_BYTE) {
     std::vector<unsigned char> obj = {0x90, 0xC3};
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -30,7 +33,7 @@ TEST(disas, ONE_BYTE_IMM) {
         0x05, 0x44, 0x33, 0x22, 0x11,  // add  eax 0x11223344
         0x2d, 0x44, 0x33, 0x22, 0x11,  // sub  eax 0x11223344
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -61,7 +64,7 @@ TEST(disas, ONE_BYTE_IMM_SIZE) {
         0x48, 0xb8, 0x88, 0x77, 0x66,
         0x55, 0x44, 0x33, 0x22, 0x11  // movabs 0x1122334455667788 rax
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -95,7 +98,7 @@ TEST(disas, SEVERAL_ADD) {
         0x01, 0x84, 0x00, 0x00,
         0x80, 0x00, 0x00  // add  eax, 0x8000(rax, rax, 1)
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -137,7 +140,7 @@ TEST(disas, MODRM_REG) {
         0x01, 0x30,  // add rax esi
         0x01, 0x38   // add rax edi
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -190,7 +193,7 @@ TEST(disas, MODRM_MOD11) {
                                       0x01, 0xc6,  // add eax esi
                                       0x01, 0xc7,  // add eax edi
                                       0x03, 0xc0};
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -244,7 +247,7 @@ TEST(disas, MODRM_MOD_DISP) {
         0x8b, 0x48, 0x01,                    // mov
         0x8b, 0x88, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -268,7 +271,7 @@ TEST(disas, MODRM_MOD00_RM101) {
         0x8b, 0x4d, 0x01,                    // mov
         0x8b, 0x8d, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
         0x8b, 0x0c, 0x25, 0x00, 0x00, 0x08, 0x00};
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -298,7 +301,7 @@ TEST(disas, MODRM_SIB_RSP) {
         0x8b, 0x14, 0x48,        // add  eax 0x0
         0x8b, 0x14, 0x24         // add
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -326,7 +329,7 @@ TEST(disas, ADD_IMM) {
         0x01, 0xc0,        // add eax ecx
         0x83, 0xc0, 0x01,  // mov
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -351,7 +354,7 @@ TEST(disas, MODRM_OPCODE) {
         0x83, 0xf0, 0x01,  // add eax ecx
         0x83, 0xf8, 0x01,  // mov
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -406,7 +409,7 @@ TEST(disas, REXW) {
         0x83, 0xc0, 0x01,        // add eax ecx
         0x48, 0x83, 0xc0, 0x01,  // mov
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -425,7 +428,7 @@ TEST(disas, REXRXB) {
         0x42, 0x01, 0x04, 0x91,  // mov
         0x41, 0x01, 0x04, 0x91   // add
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -450,7 +453,7 @@ TEST(disas, TWOBYTE) {
         0x00, 0x00, 0x00, 0x00,  // movsx 0x0, rax, movsx bx, rax
         0x48, 0x63, 0xc3,        // movsx
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();
@@ -475,7 +478,7 @@ TEST(disas, CFInstructions) {
         0xeb, 0x04,                    // jmp 12
         0xeb, 0xf2,                    // jmp 0
     };
-    LinearSweepDisAssembler disas(obj);
+    LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
     std::pair<std::string, uint64_t> res = disas.step();

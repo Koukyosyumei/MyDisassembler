@@ -19,6 +19,7 @@ struct DisAssembler {
                                      // bytes have been decoded
     const std::vector<unsigned char>
         &binaryBytes;  // byte array of the object source
+    const std::unordered_map<long long, std::string> &addr2symbol;
 
     size_t curIdx;  // the current index to be decoded
 
@@ -29,8 +30,9 @@ struct DisAssembler {
     std::unordered_map<size_t, size_t> disassembledInstructionsLength;
     std::vector<size_t> errorIdxs;  // keep track of error bytes indexes
 
-    DisAssembler(const std::vector<unsigned char> &binaryBytes)
-        : binaryBytes(binaryBytes), curIdx(0) {
+    DisAssembler(const std::vector<unsigned char> &binaryBytes,
+                 const std::unordered_map<long long, std::string> &addr2symbol)
+        : binaryBytes(binaryBytes), addr2symbol(addr2symbol), curIdx(0) {
         isSuccessfullyDisAssembled =
             std::vector<bool>(binaryBytes.size(), false);
     }
@@ -86,7 +88,7 @@ struct DisAssembler {
     }
 
     std::pair<std::string, uint64_t> step() {
-        State state(binaryBytes);
+        State state(binaryBytes, addr2symbol);
         std::tuple<size_t, size_t, Mnemonic, std::string, size_t> instruction =
             state.step(getCurIdx());
         uint64_t targetAddr = storeInstruction(
@@ -117,13 +119,16 @@ struct LinearSweepDisAssembler : public DisAssembler {
         while (!isSweepComplete()) {
             curIdx = getCurIdx();
             try {
-                State state(binaryBytes);
+                step();
+                /*
+                State state(binaryBytes, addr2symbol);
                 std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
                     instruction = state.step(curIdx);
                 storeInstruction(
                     std::get<0>(instruction), std::get<1>(instruction),
                     to_string(std::get<2>(instruction)),
                     std::get<3>(instruction), std::get<4>(instruction));
+                    */
             } catch (const std::exception &e) {
                 std::cerr << std::to_string(curIdx) << ": " << e.what()
                           << std::endl;

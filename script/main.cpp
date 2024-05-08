@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     ELF64_FILE_HEADER header;
     ELF64_SECTION_HEADER shstr;
     std::unordered_map<std::string, ELF64_SECTION_HEADER> section_headers;
-    std::unordered_map<std::string, size_t> symbol2addr;
+    std::unordered_map<long long, std::string> addr2symbol;
 
     load(binaryPath, binaryBytes);
     std::copy_n(binaryBytes.begin(), sizeof(header),
@@ -49,7 +49,6 @@ int main(int argc, char* argv[]) {
     std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
                     (int)header.e_shstrndx * (int)header.e_shentsize,
                 sizeof(shstr), reinterpret_cast<unsigned char*>(&shstr));
-
 
     // parse the file header
     for (int sid = 0; sid < (int)header.e_shnum; sid++) {
@@ -78,7 +77,10 @@ int main(int argc, char* argv[]) {
                 binaryBytes,
                 (int)section_headers[".strtab"].sh_offset + (int)sym.st_name);
 
-            symbol2addr.insert(std::make_pair(sym_name, (size_t)sym.st_size));
+            if (sym_name.size() > 0) {
+                addr2symbol.insert(
+                    std::make_pair((long long)sym.st_value, sym_name));
+            }
         }
     }
 
@@ -89,7 +91,7 @@ int main(int argc, char* argv[]) {
             binaryBytes.begin() + (int)section_headers[".text"].sh_offset +
                 (int)section_headers[".text"].sh_size);
 
-        LinearSweepDisAssembler da(text_section_binaryBytes);
+        LinearSweepDisAssembler da(text_section_binaryBytes, addr2symbol);
         da.disas();
 
         std::sort(da.disassembledPositions.begin(),
@@ -99,11 +101,13 @@ int main(int argc, char* argv[]) {
         for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
             if (da.disassembledInstructions.find(k) !=
                 da.disassembledInstructions.end()) {
-                std::cout << k.first << ": "
+                if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
+                    std::cout << std::endl
+                              << addr2symbol.at(k.first) << std::endl;
+                }
+                std::cout << " " << k.first << ": "
                           << da.disassembledInstructions.at(k) << std::endl;
             }
         }
-        std::cout << "#Found Instructions: "
-                  << da.disassembledInstructions.size() << std::endl;
     }
 }

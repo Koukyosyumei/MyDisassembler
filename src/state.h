@@ -38,6 +38,7 @@ inline long long decodeOffset(const std::string& val) {
 
 struct State {
     const std::vector<unsigned char>& objectSource;
+    const std::unordered_map<long long, std::string>& addr2symbol;
 
     bool hasPrefixInstruction, hasREX, hasSIB, hasDisp8, hasDisp32;
     size_t curIdx, instructionLen, prefixOffset;
@@ -59,8 +60,10 @@ struct State {
     std::vector<std::string> assemblyInstruction;
     std::vector<std::string> assemblyOperands;
 
-    State(const std::vector<unsigned char>& objectSource)
+    State(const std::vector<unsigned char>& objectSource,
+          const std::unordered_map<long long, std::string>& addr2symbol)
         : objectSource(objectSource),
+          addr2symbol(addr2symbol),
           hasPrefixInstruction(false),
           hasREX(false),
           hasSIB(false),
@@ -352,8 +355,12 @@ struct State {
             nextOffset = decodeOffset(assemblyOperands[0]);
             long long labelAddr = ((long long)startIdx) +
                                   ((long long)instructionLen) + nextOffset;
+            std::string labelName = std::to_string(labelAddr);
+            if (addr2symbol.find(labelAddr) != addr2symbol.end()) {
+                labelName = "<" + addr2symbol.at(labelAddr) + ">";
+            }
             assemblyInstructionStr =
-                to_string(mnemonic) + " " + std::to_string(labelAddr) +
+                to_string(mnemonic) + " " + labelName +
                 " ; relative offset = " + std::to_string(nextOffset);
         } else {
             assemblyInstructionStr = assemblyInstruction[0];

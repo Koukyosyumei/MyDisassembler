@@ -9,7 +9,7 @@ include(FetchContent)
 #FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
-set(TEST_NAME myplan-test)
+set(TEST_NAME mydisas-test)
 
 file(GLOB testSRC
     "*.cpp"
