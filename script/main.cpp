@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
                 da.disassembledInstructions.end()) {
                 if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
                     std::cout << std::endl
-                              << addr2symbol.at(k.first) << std::endl;
+                              << "<" << addr2symbol.at(k.first) << ">" << std::endl;
                 }
                 std::cout << " " << k.first << ": "
                           << da.disassembledInstructions.at(k) << std::endl;
