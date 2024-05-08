@@ -101,6 +101,9 @@ enum class Mnemonic {
     MOVSX,
     MOVSXD,
     MOVZX,
+    SCASQ,
+    LODSQ,
+    STOSQ,
     LEA,
     ADD,
     ADC,
@@ -167,6 +170,7 @@ enum class Mnemonic {
     MOVSB,
     MOVSW,
     MOVSD,
+    MOVSQ,
     REP,
     REPE,
     REPNE,
@@ -184,6 +188,7 @@ enum class Mnemonic {
     CMPSB,
     CMPSW,
     CMPSD,
+    CMPSQ,
     IN,
     OUT,
     INSB,
@@ -259,6 +264,12 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "neg";
         case Mnemonic::CMP:
             return "cmp";
+        case Mnemonic::LODSQ:
+            return "lodsq";
+        case Mnemonic::SCASQ:
+            return "scasq";
+        case Mnemonic::STOSQ:
+            return "stosq";
         case Mnemonic::TEST:
             return "test";
         case Mnemonic::SAL:
@@ -357,6 +368,8 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "movsw";
         case Mnemonic::MOVSD:
             return "movsd";
+        case Mnemonic::MOVSQ:
+            return "movsq";
         case Mnemonic::REP:
             return "rep";
         case Mnemonic::REPE:
@@ -391,6 +404,8 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "cmpsw";
         case Mnemonic::CMPSD:
             return "cmpsd";
+        case Mnemonic::CMPSQ:
+            return "cmpsq";
         case Mnemonic::IN:
             return "in";
         case Mnemonic::OUT:

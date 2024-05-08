@@ -5,5 +5,5 @@ main:
 	mov $0x300, %rdi
     mov $0x11, %rcx
     cld
-    rep movsb
+    rep movsw
     ret
