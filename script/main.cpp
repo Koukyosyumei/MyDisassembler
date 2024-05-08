@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
 
     std::sort(da.disassembledPositions.begin(), da.disassembledPositions.end());
 
+    std::cout << "section: .text" << std::endl;
     for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
         if (da.disassembledInstructions.find(k) !=
             da.disassembledInstructions.end()) {
@@ -81,4 +82,5 @@ int main(int argc, char* argv[]) {
                       << std::endl;
         }
     }
+    std::cout << "#Found Instructions: " << da.disassembledInstructions.size() << std::endl;
 }
