@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "disassembler.h"
@@ -34,23 +35,23 @@ std::string getStringFromOffset(const std::vector<unsigned char>& x, size_t i) {
 }
 
 int main(int argc, char* argv[]) {
-    std::vector<unsigned char> binaryBytes;
     std::string binaryPath = argv[1];
-    load(binaryPath, binaryBytes);
 
+    std::vector<unsigned char> binaryBytes;
     ELF64_FILE_HEADER header;
+    ELF64_SECTION_HEADER shstr;
+    std::unordered_map<std::string, ELF64_SECTION_HEADER> section_headers;
+    std::unordered_map<std::string, size_t> symbol2addr;
+
+    load(binaryPath, binaryBytes);
     std::copy_n(binaryBytes.begin(), sizeof(header),
                 reinterpret_cast<unsigned char*>(&header));
-
-    ELF64_SECTION_HEADER shstr;
     std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
                     (int)header.e_shstrndx * (int)header.e_shentsize,
                 sizeof(shstr), reinterpret_cast<unsigned char*>(&shstr));
 
-    std::vector<ELF64_SECTION_HEADER> section_headers;
-    int text_section_offset = 0;
-    int text_section_size = 0;
 
+    // parse the file header
     for (int sid = 0; sid < (int)header.e_shnum; sid++) {
         ELF64_SECTION_HEADER sh;
         std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
@@ -58,29 +59,51 @@ int main(int argc, char* argv[]) {
                     sizeof(sh), reinterpret_cast<unsigned char*>(&sh));
         std::string section_name = getStringFromOffset(
             binaryBytes, (int)shstr.sh_offset + (int)sh.sh_name);
-        section_headers.emplace_back(sh);
-        if (section_name == ".text") {
-            text_section_offset = (int)sh.sh_offset;
-            text_section_size = (int)sh.sh_size;
+        section_headers.insert(std::make_pair(section_name, sh));
+    }
+
+    // parse the .symtab section
+    if (section_headers.find(".symtab") != section_headers.end() &&
+        section_headers.find(".strtab") != section_headers.end()) {
+        int symtab_symbol_num =
+            (int)section_headers[".symtab"].sh_size / (int)(sizeof(ELF64_SYM));
+        for (int sid = 0; sid < symtab_symbol_num; sid++) {
+            ELF64_SYM sym;
+            std::copy_n(binaryBytes.begin() +
+                            (int)section_headers[".symtab"].sh_offset +
+                            sid * sizeof(ELF64_SYM),
+                        sizeof(sym), reinterpret_cast<unsigned char*>(&sym));
+
+            std::string sym_name = getStringFromOffset(
+                binaryBytes,
+                (int)section_headers[".strtab"].sh_offset + (int)sym.st_name);
+
+            symbol2addr.insert(std::make_pair(sym_name, (size_t)sym.st_size));
         }
     }
 
-    std::vector<unsigned char> text_section_binaryBytes(
-        binaryBytes.begin() + text_section_offset,
-        binaryBytes.begin() + text_section_offset + text_section_size);
+    // parse the .text section
+    if (section_headers.find(".text") != section_headers.end()) {
+        std::vector<unsigned char> text_section_binaryBytes(
+            binaryBytes.begin() + (int)section_headers[".text"].sh_offset,
+            binaryBytes.begin() + (int)section_headers[".text"].sh_offset +
+                (int)section_headers[".text"].sh_size);
 
-    LinearSweepDisAssembler da(text_section_binaryBytes);
-    da.disas();
+        LinearSweepDisAssembler da(text_section_binaryBytes);
+        da.disas();
 
-    std::sort(da.disassembledPositions.begin(), da.disassembledPositions.end());
+        std::sort(da.disassembledPositions.begin(),
+                  da.disassembledPositions.end());
 
-    std::cout << "section: .text" << std::endl;
-    for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
-        if (da.disassembledInstructions.find(k) !=
-            da.disassembledInstructions.end()) {
-            std::cout << k.first << ": " << da.disassembledInstructions.at(k)
-                      << std::endl;
+        std::cout << "section: .text" << std::endl;
+        for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
+            if (da.disassembledInstructions.find(k) !=
+                da.disassembledInstructions.end()) {
+                std::cout << k.first << ": "
+                          << da.disassembledInstructions.at(k) << std::endl;
+            }
         }
+        std::cout << "#Found Instructions: "
+                  << da.disassembledInstructions.size() << std::endl;
     }
-    std::cout << "#Found Instructions: " << da.disassembledInstructions.size() << std::endl;
 }
