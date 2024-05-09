@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::string binaryPath = argv[1];
+    std::string binaryPath = argv[optind];
 
     std::vector<unsigned char> binaryBytes;
     ELF64_FILE_HEADER header;
@@ -109,13 +109,29 @@ int main(int argc, char* argv[]) {
 
         DisAssembler* da;
 
-        da = new LinearSweepDisAssembler(text_section_binaryBytes, addr2symbol);
+        if (strategy == "ls" || strategy == "linearsweep") {
+            da = new LinearSweepDisAssembler(text_section_binaryBytes,
+                                             addr2symbol);
+        } else if (strategy == "rd" || strategy == "recursivedescent") {
+            da = new RecursiveDescentDisAssembler(text_section_binaryBytes,
+                                                  addr2symbol);
+        } else {
+            std::cerr << strategy
+                      << " is not supported as a valid strategy. We currently "
+                         "support [linearsweep (ls), recursivedescent (rd)].";
+            std::cerr << "The default strategy (linearsweep) is used for the "
+                         "following task."
+                      << std::endl;
+            da = new LinearSweepDisAssembler(text_section_binaryBytes,
+                                             addr2symbol);
+        }
+
         da->disas();
 
         std::sort(da->disassembledPositions.begin(),
                   da->disassembledPositions.end());
 
-        std::cout << "section: .text" << std::endl;
+        std::cout << "section: .text ----" << std::endl;
         for (const std::pair<size_t, size_t> k : da->disassembledPositions) {
             if (da->disassembledInstructions.find(k) !=
                 da->disassembledInstructions.end()) {
@@ -128,5 +144,7 @@ int main(int argc, char* argv[]) {
                           << da->disassembledInstructions.at(k) << std::endl;
             }
         }
+        std::cout << "-------------------" << std::endl;
+        std::cout << "Done!" << std::endl;
     }
 }

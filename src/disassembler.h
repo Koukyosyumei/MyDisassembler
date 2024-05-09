@@ -134,10 +134,11 @@ struct LinearSweepDisAssembler : public DisAssembler {
 
 struct RecursiveDescentDisAssembler : public DisAssembler {
     std::stack<uint64_t> unvisited_addrs;
+    bool isDone = false;
 
     using DisAssembler::DisAssembler;
 
-    bool isComplete() { return unvisited_addrs.empty(); }
+    bool isComplete() { return isDone; }
 
     void disas() {
         size_t curIdx;
@@ -151,6 +152,7 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                 if (mnemonic == Mnemonic::RET) {
                     while (true) {
                         if (unvisited_addrs.empty()) {
+                            isDone = true;
                             break;
                         } else {
                             curIdx = unvisited_addrs.top();
