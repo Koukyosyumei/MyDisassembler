@@ -1,4 +1,6 @@
 #pragma once
+#include <sched.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -124,10 +126,24 @@ struct LinearSweepDisAssembler : public DisAssembler {
 struct RecursiveDescentDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
+    void popAddr(std::stack<uint64_t> &stackedAddrs, bool &isDone) {
+        while (true) {
+            if (stackedAddrs.empty()) {
+                isDone = true;
+                break;
+            } else {
+                curAddr = stackedAddrs.top();
+                stackedAddrs.pop();
+                if (!isSuccessfullyDisAssembled[curAddr]) {
+                    break;
+                }
+            }
+        }
+    }
+
     void disas() {
         bool isDone = false;
         std::stack<uint64_t> stackedAddrs;
-        stackedAddrs.push(curAddr);
 
         while (!isDone) {
             try {
@@ -142,37 +158,54 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
 
                 if (mnemonic == Mnemonic::RET ||
                     nextAddr >= binaryBytes.size()) {
-                    while (true) {
-                        if (stackedAddrs.empty()) {
-                            isDone = true;
-                            break;
-                        } else {
-                            curAddr = stackedAddrs.top();
-                            stackedAddrs.pop();
-                            if (!isSuccessfullyDisAssembled[curAddr]) {
-                                break;
-                            }
-                        }
-                    }
+                    popAddr(stackedAddrs, isDone);
                 } else if (isControlFlowInstruction(mnemonic)) {
                     if (nextAddr == cfAddr) {
-                        curAddr = nextAddr;
+                        if (nextAddr < binaryBytes.size()) {
+                            curAddr = nextAddr;
+                        } else if (!stackedAddrs.empty()) {
+                            popAddr(stackedAddrs, isDone);
+                        } else {
+                            isDone = true;
+                            break;
+                        }
                     } else {
                         if (nextAddr < binaryBytes.size() &&
                             !isSuccessfullyDisAssembled[nextAddr]) {
                             stackedAddrs.push(nextAddr);
                         }
-                        curAddr = cfAddr;
+                        if (cfAddr < binaryBytes.size()) {
+                            curAddr = cfAddr;
+                        } else if (!stackedAddrs.empty()) {
+                            popAddr(stackedAddrs, isDone);
+                        } else {
+                            isDone = true;
+                            break;
+                        }
                     }
                 } else {
-                    curAddr = nextAddr;
+                    if (nextAddr < binaryBytes.size()) {
+                        curAddr = nextAddr;
+                    } else if (!stackedAddrs.empty()) {
+                        popAddr(stackedAddrs, isDone);
+                    } else {
+                        isDone = true;
+                        break;
+                    }
                 }
 
             } catch (const std::exception &e) {
                 std::cerr << std::to_string(curAddr) << ": " << e.what()
                           << std::endl;
                 storeError(curAddr, 1);
-                curAddr += 1;
+                if (curAddr + 1 < binaryBytes.size()) {
+                    curAddr += 1;
+                } else if (!stackedAddrs.empty()) {
+                    popAddr(stackedAddrs, isDone);
+                } else {
+                    isDone = true;
+                    break;
+                }
             }
         }
     }
