@@ -37,7 +37,7 @@ inline long long decodeOffset(const std::string& val) {
 }
 
 typedef struct {
-    size_t startIdx;
+    size_t startAddr;
     size_t instructionLen;
     Mnemonic mnemonic;
     std::string assemblyInstructionStr;
@@ -49,7 +49,7 @@ struct State {
     const std::unordered_map<long long, std::string>& addr2symbol;
 
     bool hasPrefixInstruction, hasREX, hasSIB, hasDisp8, hasDisp32;
-    size_t curIdx, instructionLen, prefixOffset;
+    size_t curAddr, instructionLen, prefixOffset;
     int opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
@@ -77,14 +77,14 @@ struct State {
           hasSIB(false),
           hasDisp8(false),
           hasDisp32(false),
-          curIdx(0),
+          curAddr(0),
           instructionLen(0),
           prefixOffset(0),
           prefix(Prefix::NONE) {}
 
     void init() {
         hasPrefixInstruction = hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
-        curIdx = 0;
+        curAddr = 0;
         instructionLen = 0;
         prefixOffset = 0;
         prefix = Prefix::NONE;
@@ -103,15 +103,15 @@ struct State {
     }
 
     void parsePrefix() {
-        if (objectSource[curIdx] == 0x66) {
+        if (objectSource[curAddr] == 0x66) {
             prefix = Prefix::P66;
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
         }
     }
 
     void parsePrefixInstructions() {
-        int startByte = objectSource[curIdx];
+        int startByte = objectSource[curAddr];
         if (PREFIX_INSTRUCTIONS_MAP.find(startByte) !=
             PREFIX_INSTRUCTIONS_MAP.end()) {
             hasPrefixInstruction = true;
@@ -119,17 +119,17 @@ struct State {
             assemblyInstruction.push_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
         }
     }
 
     void parseREX() {
         // The format of REX prefix is 0100|W|R|X|B
-        if ((objectSource[curIdx] >> 4) == 4) {
+        if ((objectSource[curAddr] >> 4) == 4) {
             hasREX = true;
-            rex = REX(objectSource[curIdx]);
+            rex = REX(objectSource[curAddr]);
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
 
             if (rex.rexW) {
                 prefix = Prefix::REXW;
@@ -141,15 +141,15 @@ struct State {
 
     void parseOpecode() {
         // eat opecode
-        opcodeByte = objectSource[curIdx];
+        opcodeByte = objectSource[curAddr];
         instructionLen += 1;
-        curIdx += 1;
+        curAddr += 1;
 
         if (TWO_BYTES_OPCODE_PREFIX.find(opcodeByte) !=
             TWO_BYTES_OPCODE_PREFIX.end()) {
-            opcodeByte = (opcodeByte << 8) + objectSource[curIdx];
+            opcodeByte = (opcodeByte << 8) + objectSource[curAddr];
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
         }
 
         // (prefix, opcode) -> (reg, mnemonic)
@@ -176,8 +176,8 @@ struct State {
         // We sometimes need reg of modrm to determine the opecode
         // e.g. 83 /4 -> AND
         //      83 /1 -> OR
-        if (curIdx < objectSource.size()) {
-            modrmByte = objectSource[curIdx];
+        if (curAddr < objectSource.size()) {
+            modrmByte = objectSource[curAddr];
         }
 
         if (modrmByte >= 0) {
@@ -212,7 +212,7 @@ struct State {
                     "Expected ModRM byte but there aren't any bytes left.");
             }
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
             modrm = ModRM(modrmByte, rex);
         }
     }
@@ -220,8 +220,8 @@ struct State {
     void parseSIB() {
         if (hasModrm(opEnc) && modrm.hasSib) {
             // eat the sib (1 byte)
-            if (curIdx < objectSource.size()) {
-                sibByte = objectSource[curIdx];
+            if (curAddr < objectSource.size()) {
+                sibByte = objectSource[curAddr];
             }
             if (sibByte < 0) {
                 throw std::runtime_error(
@@ -229,7 +229,7 @@ struct State {
             }
             sib = SIB(sibByte, modrm.modByte, rex);
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
         }
     }
 
@@ -238,10 +238,10 @@ struct State {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            disp8 = std::to_string(objectSource[curIdx]);
+            disp8 = std::to_string(objectSource[curAddr]);
             hasDisp8 = true;
             instructionLen += 1;
-            curIdx += 1;
+            curAddr += 1;
         }
 
         if ((hasModrm(opEnc) && modrm.hasDisp32) ||
@@ -249,8 +249,8 @@ struct State {
             (hasModrm(opEnc) && modrm.hasSib &&
              (modrm.modByte == 0 || modrm.modByte == 2) && sib.baseByte == 5)) {
             std::vector<uint8_t> _disp32 =
-                std::vector<uint8_t>(objectSource.begin() + curIdx,
-                                     objectSource.begin() + curIdx + 4);
+                std::vector<uint8_t>(objectSource.begin() + curAddr,
+                                     objectSource.begin() + curAddr + 4);
             std::reverse(_disp32.begin(), _disp32.end());
             std::stringstream ss;
             ss << "0x";
@@ -262,15 +262,15 @@ struct State {
 
             hasDisp32 = true;
             instructionLen += 4;
-            curIdx += 4;
+            curAddr += 4;
         }
     }
 
-    // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
-    DisassembledInstruction step(size_t startIdx) {
+    // startAddr, targetLen, mnemonic, assemblyStr, nextOffset
+    DisassembledInstruction step(size_t startAddr) {
         // ############### Initialize ##############################
         init();
-        curIdx = startIdx;
+        curAddr = startAddr;
 
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
@@ -331,11 +331,11 @@ struct State {
                     immSize = 1;
                 }
                 imm = std::vector<uint8_t>(
-                    objectSource.begin() + curIdx,
-                    objectSource.begin() + curIdx + immSize);
+                    objectSource.begin() + curAddr,
+                    objectSource.begin() + curAddr + immSize);
                 std::reverse(imm.begin(), imm.end());
                 instructionLen += immSize;
-                curIdx += immSize;
+                curAddr += immSize;
 
                 std::stringstream ss;
                 ss << "0x";
@@ -361,7 +361,7 @@ struct State {
         if (isControlFlowInstruction(mnemonic) && operands.size() == 1 &&
             isIMM(operands[0])) {
             nextOffset = decodeOffset(assemblyOperands[0]);
-            long long labelAddr = ((long long)startIdx) +
+            long long labelAddr = ((long long)startAddr) +
                                   ((long long)instructionLen) + nextOffset;
             std::string labelName = std::to_string(labelAddr);
             if (addr2symbol.find(labelAddr) != addr2symbol.end()) {
@@ -377,7 +377,7 @@ struct State {
             }
         }
 
-        return {startIdx, instructionLen, mnemonic, assemblyInstructionStr,
+        return {startAddr, instructionLen, mnemonic, assemblyInstructionStr,
                 nextOffset};
     }
 };
