@@ -115,6 +115,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
                 std::cerr << std::to_string(curAddr) << ": " << e.what()
                           << std::endl;
                 storeError(curAddr, 1);
+                curAddr += 1;
             }
         }
     }
@@ -171,6 +172,7 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                 std::cerr << std::to_string(curAddr) << ": " << e.what()
                           << std::endl;
                 storeError(curAddr, 1);
+                curAddr += 1;
             }
         }
     }
