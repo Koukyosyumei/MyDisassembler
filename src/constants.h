@@ -4,8 +4,6 @@
 #include <unordered_set>
 #include <vector>
 
-enum class InstructionCategory { CALL, FUNC_END, JUMP, JCC };
-
 enum class Operand {
     one,
     imm8,
@@ -443,45 +441,6 @@ inline bool isCFMInstructions(Mnemonic mnemonic) {
            mnemonic == Mnemonic::JNLE || mnemonic == Mnemonic::JMP;
 }
 
-enum class Registers {
-    RAX,
-    RCX,
-    RDX,
-    RBX,
-    RSP,
-    RBP,
-    RSI,
-    RDI,
-    RIP,
-    R8,
-    R9,
-    R10,
-    R11,
-    R12,
-    R13,
-    R14,
-    R15,
-    SIB
-};
-
-/*
-const std::unordered_map<int, std::string> id2register = {
-    {0, "RAX"},  {1, "RCX"},  {2, "RDX"},  {3, "RBX"}, {4, "RSP"},  {5, "RBP"},
-    {6, "RSI"},  {7, "RDI"},  {8, "R8"},   {9, "R9"},  {10, "R10"}, {11, "R11"},
-    {12, "R12"}, {13, "R13"}, {14, "R14"}, {15, "R15"}};
-*/
-
-const std::unordered_map<std::string, InstructionCategory>
-    instructionCategories = {
-        {"CALL", InstructionCategory::CALL},
-        {"RET", InstructionCategory::FUNC_END},
-        {"RETN", InstructionCategory::FUNC_END},
-        {"RETF", InstructionCategory::FUNC_END},
-        {"JMP", InstructionCategory::JUMP},
-        {"JZ", InstructionCategory::JCC},
-        {"JNZ", InstructionCategory::JCC},
-};
-
 // Define register names
 const std::vector<std::string> REGISTERS8 = {
     "al",  "cl",  "dl",   "bpl",  "spl",  "bpl",  "sil",  "dil",
@@ -508,15 +467,6 @@ inline const std::vector<std::string>* operand2register(Operand operand) {
     }
     return nullptr;
 }
-
-// Define addressing modes (no need for square brackets)
-const std::vector<std::string> addressingModes = {"reg", "reg + disp8",
-                                                  "reg + disp32"};
-
-// Define scale factors
-// const std::vector<std::string> SCALE = {"index + base", "index * 2 + base",
-//                                        "index * 4 + base", "index * 8 +
-//                                        base"};
 
 inline std::string to_string(Operand opu) {
     switch (opu) {
