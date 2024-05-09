@@ -654,13 +654,13 @@ const std::unordered_map<
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
     OPERAND_LOOKUP = {
         // IN
-        {{Prefix::NONE, Mnemonic::OUT, u2d("\xE4")},
+        {{Prefix::NONE, Mnemonic::IN, u2d("\xE4")},
          {OpEnc::I, {"ib"}, {Operand::al, Operand::imm8}}},
-        {{Prefix::NONE, Mnemonic::OUT, u2d("\xE5")},
+        {{Prefix::NONE, Mnemonic::IN, u2d("\xE5")},
          {OpEnc::I, {"ib"}, {Operand::eax, Operand::imm8}}},
-        {{Prefix::NONE, Mnemonic::OUT, u2d("\xEC")},
+        {{Prefix::NONE, Mnemonic::IN, u2d("\xEC")},
          {OpEnc::NP, {}, {Operand::al, Operand::dx}}},
-        {{Prefix::NONE, Mnemonic::OUT, u2d("\xED")},
+        {{Prefix::NONE, Mnemonic::IN, u2d("\xED")},
          {OpEnc::NP, {}, {Operand::eax, Operand::dx}}},
 
         // OUT
