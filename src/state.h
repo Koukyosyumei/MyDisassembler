@@ -36,6 +36,14 @@ inline long long decodeOffset(const std::string& val) {
     return offset;
 }
 
+typedef struct {
+    size_t startIdx;
+    size_t instructionLen;
+    Mnemonic mnemonic;
+    std::string assemblyInstructionStr;
+    long long nextOffset;
+} DisassembledInstruction;
+
 struct State {
     const std::vector<unsigned char>& objectSource;
     const std::unordered_map<long long, std::string>& addr2symbol;
@@ -259,8 +267,7 @@ struct State {
     }
 
     // startIdx, targetLen, mnemonic, assemblyStr, nextOffset
-    std::tuple<size_t, size_t, Mnemonic, std::string, long long> step(
-        size_t startIdx) {
+    DisassembledInstruction step(size_t startIdx) {
         // ############### Initialize ##############################
         init();
         curIdx = startIdx;
@@ -369,7 +376,7 @@ struct State {
             }
         }
 
-        return std::make_tuple(startIdx, instructionLen, mnemonic,
-                               assemblyInstructionStr, nextOffset);
+        return {startIdx, instructionLen, mnemonic, assemblyInstructionStr,
+                nextOffset};
     }
 };

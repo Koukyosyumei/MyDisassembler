@@ -42,23 +42,18 @@ struct DisAssembler {
     virtual void disas() = 0;
     virtual bool isComplete() = 0;
 
-    uint64_t storeInstruction(size_t startIdx, size_t instructionLength,
-                              std::string mnemonicStr, std::string instruction,
-                              long long nextOffset) {
-        uint64_t labelAddr =
-            (uint64_t)((long long)startIdx + (long long)instructionLength +
-                       nextOffset);
+    void storeInstruction(DisassembledInstruction instruction) {
+        size_t nextIdx = instruction.startIdx + instruction.instructionLen;
 
         // skip if this has already been decoded
-        for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
+        for (size_t idx = instruction.startIdx; idx < nextIdx; ++idx) {
             if (isSuccessfullyDisAssembled[idx]) {
-                return labelAddr;
+                return;
             }
         }
 
         // mark the decoded regions
-        curIdx = startIdx + instructionLength;
-        for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
+        for (size_t idx = instruction.startIdx; idx < nextIdx; ++idx) {
             isSuccessfullyDisAssembled[idx] = true;
         }
 
@@ -74,32 +69,29 @@ struct DisAssembler {
             errorIdxs.clear();
         }
 
-        disassembledInstructions[std::make_pair(
-            startIdx, startIdx + instructionLength)] = instruction;
+        disassembledInstructions[std::make_pair(instruction.startIdx,
+                                                nextIdx)] =
+            instruction.assemblyInstructionStr;
         disassembledPositions.push_back(
-            std::make_pair(startIdx, startIdx + instructionLength));
-        disassembledInstructionsLength[startIdx] = instructionLength;
+            std::make_pair(instruction.startIdx, nextIdx));
+        disassembledInstructionsLength[instruction.startIdx] =
+            instruction.instructionLen;
 
-        return labelAddr;
+        return;
     }
 
     void storeError(int startIdx, int instructionLength) {
-        curIdx = startIdx + instructionLength;
         for (int i = startIdx; i < startIdx + instructionLength; i++) {
             isSuccessfullyDisAssembled[i] = false;
             errorIdxs.push_back(i);
         }
     }
 
-    std::pair<Mnemonic, uint64_t> step() {
+    DisassembledInstruction step() {
         State state(binaryBytes, addr2symbol);
-        std::tuple<size_t, size_t, Mnemonic, std::string, size_t> instruction =
-            state.step(getCurIdx());
-        uint64_t targetAddr = storeInstruction(
-            std::get<0>(instruction), std::get<1>(instruction),
-            to_string(std::get<2>(instruction)), std::get<3>(instruction),
-            std::get<4>(instruction));
-        return std::make_pair(std::get<2>(instruction), targetAddr);
+        DisassembledInstruction instruction = state.step(getCurIdx());
+        storeInstruction(instruction);
+        return instruction;
     }
 
     int getCurIdx() { return curIdx; }
@@ -118,11 +110,10 @@ struct LinearSweepDisAssembler : public DisAssembler {
     bool isComplete() { return curIdx >= binaryBytes.size(); }
 
     void disas() {
-        size_t curIdx;
-
         while (!isComplete()) {
             try {
-                step();
+                DisassembledInstruction instruction = step();
+                curIdx = instruction.startIdx + instruction.instructionLen;
             } catch (const std::exception &e) {
                 std::cerr << std::to_string(curIdx) << ": " << e.what()
                           << std::endl;
@@ -141,13 +132,18 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
     bool isComplete() { return isDone; }
 
     void disas() {
-        size_t curIdx;
+        unvisited_addrs.push(curIdx);
 
         while (!isComplete()) {
             try {
-                std::pair<Mnemonic, uint64_t> result = step();
-                Mnemonic mnemonic = result.first;
-                uint64_t addr = result.second;
+                DisassembledInstruction instruction = step();
+                curIdx = instruction.startIdx + instruction.instructionLen;
+
+                Mnemonic mnemonic = instruction.mnemonic;
+                uint64_t addr =
+                    (uint64_t)((long long)instruction.startIdx +
+                               (long long)instruction.instructionLen +
+                               instruction.nextOffset);
 
                 if (mnemonic == Mnemonic::RET) {
                     while (true) {
@@ -175,10 +171,10 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                     }
                     curIdx = addr;
                 } else {
-                    if (curIdx < binaryBytes.size() &&
-                        isSuccessfullyDisAssembled[curIdx]) {
-                        curIdx += disassembledInstructionsLength[curIdx];
-                    }
+                    //if (curIdx < binaryBytes.size() &&
+                    //    isSuccessfullyDisAssembled[curIdx]) {
+                    //    curIdx += disassembledInstructionsLength[curIdx];
+                    //}
                 }
 
             } catch (const std::exception &e) {
