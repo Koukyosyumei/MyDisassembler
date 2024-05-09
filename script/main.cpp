@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -34,7 +36,21 @@ std::string getStringFromOffset(const std::vector<unsigned char>& x, size_t i) {
     return result;
 }
 
+std::string strategy = "linearsweep";
+
 int main(int argc, char* argv[]) {
+    int opt;
+    while ((opt = getopt(argc, argv, "s:")) != -1) {
+        switch (opt) {
+            case 's':
+                strategy = std::string(optarg);
+                break;
+            default:
+                std::cout << "unknown parameter is specified" << std::endl;
+                break;
+        }
+    }
+
     std::string binaryPath = argv[1];
 
     std::vector<unsigned char> binaryBytes;
@@ -91,22 +107,25 @@ int main(int argc, char* argv[]) {
             binaryBytes.begin() + (int)section_headers[".text"].sh_offset +
                 (int)section_headers[".text"].sh_size);
 
-        LinearSweepDisAssembler da(text_section_binaryBytes, addr2symbol);
-        da.disas();
+        DisAssembler* da;
 
-        std::sort(da.disassembledPositions.begin(),
-                  da.disassembledPositions.end());
+        da = new LinearSweepDisAssembler(text_section_binaryBytes, addr2symbol);
+        da->disas();
+
+        std::sort(da->disassembledPositions.begin(),
+                  da->disassembledPositions.end());
 
         std::cout << "section: .text" << std::endl;
-        for (const std::pair<size_t, size_t> k : da.disassembledPositions) {
-            if (da.disassembledInstructions.find(k) !=
-                da.disassembledInstructions.end()) {
+        for (const std::pair<size_t, size_t> k : da->disassembledPositions) {
+            if (da->disassembledInstructions.find(k) !=
+                da->disassembledInstructions.end()) {
                 if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
                     std::cout << std::endl
-                              << "<" << addr2symbol.at(k.first) << ">" << std::endl;
+                              << "<" << addr2symbol.at(k.first) << ">"
+                              << std::endl;
                 }
                 std::cout << " " << k.first << ": "
-                          << da.disassembledInstructions.at(k) << std::endl;
+                          << da->disassembledInstructions.at(k) << std::endl;
             }
         }
     }
