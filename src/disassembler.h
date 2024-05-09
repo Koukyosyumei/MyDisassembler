@@ -40,7 +40,6 @@ struct DisAssembler {
     }
 
     virtual void disas() = 0;
-    virtual bool isComplete() = 0;
 
     void storeInstruction(DisassembledInstruction instruction) {
         size_t nextAddr = instruction.startAddr + instruction.instructionLen;
@@ -107,10 +106,8 @@ struct DisAssembler {
 struct LinearSweepDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
-    bool isComplete() { return curAddr >= binaryBytes.size(); }
-
     void disas() {
-        while (!isComplete()) {
+        while (curAddr < binaryBytes.size()) {
             try {
                 DisassembledInstruction instruction = step();
                 curAddr = instruction.startAddr + instruction.instructionLen;
@@ -124,17 +121,14 @@ struct LinearSweepDisAssembler : public DisAssembler {
 };
 
 struct RecursiveDescentDisAssembler : public DisAssembler {
-    std::stack<uint64_t> stackedAddrs;
-    bool isDone = false;
-
     using DisAssembler::DisAssembler;
 
-    bool isComplete() { return isDone; }
-
     void disas() {
+        bool isDone = false;
+        std::stack<uint64_t> stackedAddrs;
         stackedAddrs.push(curAddr);
 
-        while (!isComplete()) {
+        while (!isDone) {
             try {
                 DisassembledInstruction instruction = step();
                 Mnemonic mnemonic = instruction.mnemonic;
