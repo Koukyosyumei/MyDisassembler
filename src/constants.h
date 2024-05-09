@@ -30,6 +30,7 @@ enum class Operand {
     moffs32,
     moffs64,
     cl,
+    dx
 };
 
 inline bool isA_REG(Operand operand) {
@@ -148,6 +149,8 @@ enum class Mnemonic {
     ROR,
     JMP,
     LOOP,
+    LOOPE,
+    LOOPNE,
     JZ,
     JNZ,
     JP,
@@ -291,6 +294,10 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "jmp";
         case Mnemonic::LOOP:
             return "loop";
+        case Mnemonic::LOOPE:
+            return "loope";
+        case Mnemonic::LOOPNE:
+            return "loopne";
         case Mnemonic::JZ:
             return "jz";
         case Mnemonic::JNZ:
@@ -437,9 +444,14 @@ inline bool isJCCInstruction(Mnemonic mnemonic) {
            mnemonic == Mnemonic::JNG || mnemonic == Mnemonic::JNLE;
 }
 
+inline bool isLOOPInstruction(Mnemonic mnemonic) {
+    return mnemonic == Mnemonic::LOOP || mnemonic == Mnemonic::LOOPE ||
+           mnemonic == Mnemonic::LOOPNE;
+}
+
 inline bool isControlFlowInstruction(Mnemonic mnemonic) {
     return mnemonic == Mnemonic::CALL || mnemonic == Mnemonic::JMP ||
-           isJCCInstruction(mnemonic);
+           isJCCInstruction(mnemonic) || isLOOPInstruction(mnemonic);
 }
 
 // Define register names
@@ -507,6 +519,10 @@ inline std::string to_string(Operand opu) {
             return "moffs8";
         case Operand::moffs64:
             return "moffs8";
+        case Operand::cl:
+            return "cl";
+        case Operand::dx:
+            return "dx";
         default:
             return "unknown";
     }

@@ -285,10 +285,11 @@ struct State {
 
         // ############### Process Operands ################
         std::vector<uint8_t> imm;
-        for (Operand& operand : operands) {
+        for (Operand operand : operands) {
             std::string decodedTranslatedValue;
 
-            if (isA_REG(operand)) {
+            if (isA_REG(operand) || operand == Operand::cl ||
+                operand == Operand::dx) {
                 decodedTranslatedValue = to_string(operand);
             } else if (isRM(operand) || isREG(operand)) {
                 if (hasModrm(opEnc)) {
