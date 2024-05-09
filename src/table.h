@@ -12,6 +12,7 @@
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
     OP_LOOKUP = {
+        {{Prefix::NONE, u2d("\xE3")}, {{-1, Mnemonic::JECXZ}}},
         {{Prefix::NONE, u2d("\x6C")}, {{-1, Mnemonic::INSB}}},
         {{Prefix::NONE, u2d("\x6D")}, {{-1, Mnemonic::INSW}}},
         {{Prefix::NONE, u2d("\x6E")}, {{-1, Mnemonic::OUTSB}}},
@@ -635,6 +636,29 @@ const std::unordered_map<
     std::tuple<Prefix, Mnemonic, int>,
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
     OPERAND_LOOKUP = {
+        // SHLD
+        {{Prefix::NONE, Mnemonic::SHLD, u2d("\x0F\xA4")},
+         {OpEnc::MRI, {"ib"}, {Operand::rm32, Operand::reg32, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::SHLD, u2d("\x0F\xA5")},
+         {OpEnc::MRC, {"/r"}, {Operand::rm32, Operand::reg32, Operand::cl}}},
+        {{Prefix::REXW, Mnemonic::SHLD, u2d("\x0F\xA4")},
+         {OpEnc::MRI, {"ib"}, {Operand::rm64, Operand::reg64, Operand::imm8}}},
+        {{Prefix::REXW, Mnemonic::SHLD, u2d("\x0F\xA5")},
+         {OpEnc::MRC, {"/r"}, {Operand::rm64, Operand::reg64, Operand::cl}}},
+        
+        // SHRD
+        {{Prefix::NONE, Mnemonic::SHRD, u2d("\x0F\xAC")},
+         {OpEnc::MRI, {"ib"}, {Operand::rm32, Operand::reg32, Operand::imm8}}},
+        {{Prefix::NONE, Mnemonic::SHRD, u2d("\x0F\xAD")},
+         {OpEnc::MRC, {"/r"}, {Operand::rm32, Operand::reg32, Operand::cl}}},
+        {{Prefix::REXW, Mnemonic::SHRD, u2d("\x0F\xAC")},
+         {OpEnc::MRI, {"ib"}, {Operand::rm64, Operand::reg64, Operand::imm8}}},
+        {{Prefix::REXW, Mnemonic::SHRD, u2d("\x0F\xAD")},
+         {OpEnc::MRC, {"/r"}, {Operand::rm64, Operand::reg64, Operand::cl}}},
+
+
+        {{Prefix::NONE, Mnemonic::JECXZ, u2d("\xE3")},
+         {OpEnc::D, {"cb"}, {Operand::imm8}}},
         {{Prefix::NONE, Mnemonic::INSB, u2d("\x6C")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::INSW, u2d("\x6D")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::OUTSB, u2d("\x6E")}, {OpEnc::NP, {}, {}}},
@@ -932,15 +956,15 @@ const std::unordered_map<
          {OpEnc::RM, {}, {Operand::reg64}}},
 
         // MUL
-        {{Prefix::NONE, Mnemonic::NOT, u2d("\xF6")},
+        {{Prefix::NONE, Mnemonic::MUL, u2d("\xF6")},
          {OpEnc::RM, {}, {Operand::reg8}}},
-        {{Prefix::REX, Mnemonic::NOT, u2d("\xF6")},
+        {{Prefix::REX, Mnemonic::MUL, u2d("\xF6")},
          {OpEnc::RM, {}, {Operand::reg8}}},
-        {{Prefix::P66, Mnemonic::NOT, u2d("\xF7")},
+        {{Prefix::P66, Mnemonic::MUL, u2d("\xF7")},
          {OpEnc::RM, {}, {Operand::reg16}}},
-        {{Prefix::NONE, Mnemonic::NOT, u2d("\xF7")},
+        {{Prefix::NONE, Mnemonic::MUL, u2d("\xF7")},
          {OpEnc::RM, {}, {Operand::reg32}}},
-        {{Prefix::REXW, Mnemonic::NOT, u2d("\xF7")},
+        {{Prefix::REXW, Mnemonic::MUL, u2d("\xF7")},
          {OpEnc::RM, {}, {Operand::reg64}}},
 
         // IMUL
@@ -1401,7 +1425,7 @@ const std::unordered_map<
          {OpEnc::D, {"cb"}, {Operand::imm8}}},
         {{Prefix::NONE, Mnemonic::JNA, u2d("\x76")},
          {OpEnc::D, {"cb"}, {Operand::imm8}}},
-        {{Prefix::NONE, Mnemonic::JZBE, u2d("\x77")},
+        {{Prefix::NONE, Mnemonic::JNBE, u2d("\x77")},
          {OpEnc::D, {"cb"}, {Operand::imm8}}},
         {{Prefix::NONE, Mnemonic::JS, u2d("\x78")},
          {OpEnc::D, {"cb"}, {Operand::imm8}}},

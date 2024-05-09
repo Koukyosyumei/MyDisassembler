@@ -68,7 +68,25 @@ inline bool is64Bit(Operand operand) {
     return operand == Operand::rm64 || operand == Operand::reg64;
 }
 
-enum class OpEnc { I, D, M, O, NP, MC, MI, M1, MR, RM, RMI, OI, FD, TD, S };
+enum class OpEnc {
+    I,
+    D,
+    M,
+    O,
+    NP,
+    MC,
+    MI,
+    M1,
+    MR,
+    RM,
+    RMI,
+    MRI,
+    MRC,
+    OI,
+    FD,
+    TD,
+    S
+};
 
 enum class Prefix {
     NONE,  // without prefix
@@ -136,12 +154,9 @@ enum class Mnemonic {
     JO,
     JNO,
     JS,
-    JCXZ,
     JECXZ,
     JNB,
     JNBE,
-    JNC,
-    JNE,
     JNG,
     JNGE,
     JNL,
@@ -159,9 +174,6 @@ enum class Mnemonic {
     MOVSW,
     MOVSD,
     MOVSQ,
-    REP,
-    REPE,
-    REPNE,
     CLD,
     STD,
     LODSB,
@@ -192,7 +204,6 @@ enum class Mnemonic {
     CDQE,
     CQO,
     INT21,
-    LOCK,
     ENTER,
     LEAVE,
     NOP,
@@ -292,18 +303,12 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "jno";
         case Mnemonic::JS:
             return "js";
-        case Mnemonic::JCXZ:
-            return "jcxz";
         case Mnemonic::JECXZ:
             return "jecxz";
         case Mnemonic::JNB:
             return "jnb";
         case Mnemonic::JNBE:
             return "jnbe";
-        case Mnemonic::JNC:
-            return "jnc";
-        case Mnemonic::JNE:
-            return "jne";
         case Mnemonic::JNG:
             return "jng";
         case Mnemonic::JNGE:
@@ -338,12 +343,6 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "movsd";
         case Mnemonic::MOVSQ:
             return "movsq";
-        case Mnemonic::REP:
-            return "rep";
-        case Mnemonic::REPE:
-            return "repe";
-        case Mnemonic::REPNE:
-            return "repne";
         case Mnemonic::CLD:
             return "cld";
         case Mnemonic::STD:
@@ -404,8 +403,6 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "cqo";
         case Mnemonic::INT21:
             return "int21";
-        case Mnemonic::LOCK:
-            return "lock";
         case Mnemonic::ENTER:
             return "enter";
         case Mnemonic::LEAVE:
@@ -539,6 +536,10 @@ inline bool hasModrm(OpEnc openc) {
             return true;
         case OpEnc::RMI:
             return true;
+        case OpEnc::MRI:
+            return true;
+        case OpEnc::MRC:
+            return true;
         case OpEnc::OI:
             return false;
         case OpEnc::FD:
@@ -576,6 +577,10 @@ inline std::string to_string(OpEnc openc) {
             return "RM";
         case OpEnc::RMI:
             return "RMI";
+        case OpEnc::MRI:
+            return "MRI";
+        case OpEnc::MRC:
+            return "MRC";
         case OpEnc::OI:
             return "OI";
         case OpEnc::FD:
@@ -594,8 +599,8 @@ const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F};
 // Predefined prefixes and their associated instructions
 const std::unordered_map<int, std::string> PREFIX_INSTRUCTIONS_MAP = {
     {0xF0, "LOCK"},
-    {0xF2, "REPNE"},  // TODO: support REPNEZ
-    {0xF3, "REP"},    // TODO: support REPE and REPZ
+    {0xF2, "REPNE"},
+    {0xF3, "REP"},
 };
 
 const std::vector<int> SCALE_FACTOR = {1, 2, 4, 8};
