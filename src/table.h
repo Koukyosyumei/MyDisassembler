@@ -33,6 +33,7 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::REXW, u2d("\xA7")}, {{-1, Mnemonic::CMPSQ}}},
         {{Prefix::NONE, u2d("\xC9")}, {{-1, Mnemonic::LEAVE}}},
         {{Prefix::NONE, u2d("\x0F\xA2")}, {{-1, Mnemonic::CPUID}}},
+        {{Prefix::NONE, u2d("\xF8")}, {{-1, Mnemonic::CLC}}},
         {{Prefix::NONE, u2d("\xFC")}, {{-1, Mnemonic::CLD}}},
         {{Prefix::NONE, u2d("\xF9")}, {{-1, Mnemonic::STC}}},
         // ADD, ADC, SUB, SBB, AND, OR, XOR, CMP
@@ -655,6 +656,7 @@ const std::unordered_map<
         {{Prefix::REXW, Mnemonic::CMPSQ, u2d("\xA7")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::CPUID, u2d("\x0F\xA2")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::LEAVE, u2d("\xC9")}, {OpEnc::NP, {}, {}}},
+        {{Prefix::NONE, Mnemonic::CLC, u2d("\xF8")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::CLD, u2d("\xFC")}, {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::STC, u2d("\xF9")}, {OpEnc::NP, {}, {}}},
         // ADD
