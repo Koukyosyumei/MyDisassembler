@@ -6,18 +6,6 @@
 #include "constants.h"
 #include "utils.h"
 
-inline unsigned char assembleModRmByte(unsigned char modByte,
-                                       unsigned char regByte,
-                                       unsigned char rmByte) {
-    return ((modByte << 6) + (regByte << 3) + rmByte);
-}
-
-inline unsigned char assembleSibByte(unsigned char scaleByte,
-                                     unsigned char indexByte,
-                                     unsigned char baseByte) {
-    return ((scaleByte << 6) + (indexByte << 3) + baseByte);
-}
-
 inline unsigned char getRegVal(unsigned char modrmByte) {
     return (modrmByte >> 3) & 0x7;
 }
