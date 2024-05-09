@@ -350,7 +350,7 @@ struct State {
         long long nextOffset = 0;
         std::string assemblyInstructionStr = "";
 
-        if (isCFMInstructions(mnemonic) && operands.size() == 1 &&
+        if (isControlFlowInstruction(mnemonic) && operands.size() == 1 &&
             isIMM(operands[0])) {
             nextOffset = decodeOffset(assemblyOperands[0]);
             long long labelAddr = ((long long)startIdx) +

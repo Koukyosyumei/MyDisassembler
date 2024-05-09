@@ -3,12 +3,14 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include "constants.h"
 #include "state.h"
 
 const std::string UNKNOWN_INSTRUCTION = "UNKNOWN-INSTRUCTION";
@@ -38,12 +40,14 @@ struct DisAssembler {
     }
 
     virtual void disas() = 0;
+    virtual bool isComplete() = 0;
 
     uint64_t storeInstruction(size_t startIdx, size_t instructionLength,
                               std::string mnemonicStr, std::string instruction,
                               long long nextOffset) {
-        size_t labelAddr = (size_t)((long long)startIdx +
-                                    (long long)instructionLength + nextOffset);
+        uint64_t labelAddr =
+            (uint64_t)((long long)startIdx + (long long)instructionLength +
+                       nextOffset);
 
         // skip if this has already been decoded
         for (size_t idx = startIdx; idx < startIdx + instructionLength; ++idx) {
@@ -87,7 +91,7 @@ struct DisAssembler {
         }
     }
 
-    std::pair<std::string, uint64_t> step() {
+    std::pair<Mnemonic, uint64_t> step() {
         State state(binaryBytes, addr2symbol);
         std::tuple<size_t, size_t, Mnemonic, std::string, size_t> instruction =
             state.step(getCurIdx());
@@ -95,40 +99,86 @@ struct DisAssembler {
             std::get<0>(instruction), std::get<1>(instruction),
             to_string(std::get<2>(instruction)), std::get<3>(instruction),
             std::get<4>(instruction));
-        return std::make_pair(to_string(std::get<2>(instruction)), targetAddr);
+        return std::make_pair(std::get<2>(instruction), targetAddr);
     }
 
     int getCurIdx() { return curIdx; }
 
     bool hasDecoded(int idx) { return isSuccessfullyDisAssembled[idx]; }
 
-    bool isComplete() {
+    bool hasRemainingBytes() {
         return std::count(isSuccessfullyDisAssembled.begin(),
-                          isSuccessfullyDisAssembled.end(), false) == 0;
+                          isSuccessfullyDisAssembled.end(), false) != 0;
     }
-
-    bool isSweepComplete() { return curIdx >= binaryBytes.size(); }
 };
 
 struct LinearSweepDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
+    bool isComplete() { return curIdx >= binaryBytes.size(); }
+
     void disas() {
         size_t curIdx;
 
-        while (!isSweepComplete()) {
-            curIdx = getCurIdx();
+        while (!isComplete()) {
             try {
                 step();
-                /*
-                State state(binaryBytes, addr2symbol);
-                std::tuple<size_t, size_t, Mnemonic, std::string, size_t>
-                    instruction = state.step(curIdx);
-                storeInstruction(
-                    std::get<0>(instruction), std::get<1>(instruction),
-                    to_string(std::get<2>(instruction)),
-                    std::get<3>(instruction), std::get<4>(instruction));
-                    */
+            } catch (const std::exception &e) {
+                std::cerr << std::to_string(curIdx) << ": " << e.what()
+                          << std::endl;
+                storeError(curIdx, 1);
+            }
+        }
+    }
+};
+
+struct RecursiveDescentDisAssembler : public DisAssembler {
+    std::stack<uint64_t> unvisited_addrs;
+
+    using DisAssembler::DisAssembler;
+
+    bool isComplete() { return unvisited_addrs.empty(); }
+
+    void disas() {
+        size_t curIdx;
+
+        while (!isComplete()) {
+            try {
+                std::pair<Mnemonic, uint64_t> result = step();
+                Mnemonic mnemonic = result.first;
+                uint64_t addr = result.second;
+
+                if (mnemonic == Mnemonic::RET) {
+                    while (true) {
+                        if (unvisited_addrs.empty()) {
+                            break;
+                        } else {
+                            curIdx = unvisited_addrs.top();
+                            unvisited_addrs.pop();
+                            if (!isSuccessfullyDisAssembled[curIdx]) {
+                                break;
+                            }
+                        }
+                    }
+                } else if (mnemonic == Mnemonic::JMP) {
+                    curIdx = addr;
+                } else if (isJCCInstruction(mnemonic)) {
+                    if (curIdx < binaryBytes.size()) {
+                        unvisited_addrs.push(addr);
+                    }
+                } else if (mnemonic == Mnemonic::CALL) {
+                    if (curIdx < binaryBytes.size() &&
+                        !isSuccessfullyDisAssembled[curIdx]) {
+                        unvisited_addrs.push(curIdx);
+                    }
+                    curIdx = addr;
+                } else {
+                    if (curIdx < binaryBytes.size() &&
+                        isSuccessfullyDisAssembled[curIdx]) {
+                        curIdx += disassembledInstructionsLength[curIdx];
+                    }
+                }
+
             } catch (const std::exception &e) {
                 std::cerr << std::to_string(curIdx) << ": " << e.what()
                           << std::endl;

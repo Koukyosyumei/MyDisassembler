@@ -18,12 +18,12 @@ TEST(disas, ONE_BYTE) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
-    ASSERT_EQ(res.first, "nop");
+    disas.step();
+    ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 1)], "nop ");
 
     disas.curIdx = 1;
-    res = disas.step();
-    ASSERT_EQ(res.first, "ret");
+    disas.step();
+    ASSERT_EQ(disas.disassembledInstructions[std::make_pair(1, 2)], "ret ");
 }
 
 TEST(disas, ONE_BYTE_IMM) {
@@ -36,22 +36,22 @@ TEST(disas, ONE_BYTE_IMM) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 5)],
               "mov  eax 0x11223344");
 
     disas.curIdx = 5;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(5, 10)],
               "mov  ecx 0x11223344");
 
     disas.curIdx = 10;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(10, 15)],
               "add  eax 0x11223344");
 
     disas.curIdx = 15;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(15, 20)],
               "sub  eax 0x11223344");
 }
@@ -67,22 +67,22 @@ TEST(disas, ONE_BYTE_IMM_SIZE) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "mov  al 0x11");
 
     disas.curIdx = 2;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 6)],
               "mov  ax 0x1122");
 
     disas.curIdx = 6;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(6, 11)],
               "mov  eax 0x11223344");
 
     disas.curIdx = 11;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(11, 21)],
               "mov  rax 0x1122334455667788");
 }
@@ -101,30 +101,30 @@ TEST(disas, SEVERAL_ADD) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "add  ecx eax");
 
     disas.curIdx = 2;
-    res = disas.step();
+    disas.step();
 
     disas.curIdx = 9;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(9, 11)],
               "add  [rax] eax");
 
     disas.curIdx = 11;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(11, 14)],
               "add  [rax + rax * 1] eax");
 
     disas.curIdx = 14;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(14, 18)],
               "add  [1 + rax + rax * 1] eax");
 
     disas.curIdx = 18;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(18, 25)],
               "add  [0x00008000 + rax + rax * 1] eax");
 }
@@ -143,42 +143,42 @@ TEST(disas, MODRM_REG) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "add  [rax] eax");
 
     disas.curIdx = 2;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 4)],
               "add  [rax] ecx");
 
     disas.curIdx = 4;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(4, 6)],
               "add  [rax] edx");
 
     disas.curIdx = 6;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(6, 8)],
               "add  [rax] ebx");
 
     disas.curIdx = 8;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(8, 10)],
               "add  [rax] esp");
 
     disas.curIdx = 10;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(10, 12)],
               "add  [rax] ebp");
 
     disas.curIdx = 12;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(12, 14)],
               "add  [rax] esi");
 
     disas.curIdx = 14;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(14, 16)],
               "add  [rax] edi");
 }
@@ -196,47 +196,47 @@ TEST(disas, MODRM_MOD11) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "add  eax eax");
 
     disas.curIdx = 2;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 4)],
               "add  ecx eax");
 
     disas.curIdx = 4;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(4, 6)],
               "add  edx eax");
 
     disas.curIdx = 6;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(6, 8)],
               "add  ebx eax");
 
     disas.curIdx = 8;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(8, 10)],
               "add  esp eax");
 
     disas.curIdx = 10;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(10, 12)],
               "add  ebp eax");
 
     disas.curIdx = 12;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(12, 14)],
               "add  esi eax");
 
     disas.curIdx = 14;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(14, 16)],
               "add  edi eax");
 
     disas.curIdx = 16;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(16, 18)],
               "add  eax eax");
 }
@@ -250,17 +250,17 @@ TEST(disas, MODRM_MOD_DISP) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "mov  ecx [rax]");
 
     disas.curIdx = 2;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 5)],
               "mov  ecx [rax + 1]");
 
     disas.curIdx = 5;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(5, 11)],
               "mov  ecx [rax + 0x00000100]");
 }
@@ -274,22 +274,22 @@ TEST(disas, MODRM_MOD00_RM101) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
               "mov  ecx [rbp + 0]");
 
     disas.curIdx = 3;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 6)],
               "mov  ecx [rbp + 1]");
 
     disas.curIdx = 6;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(6, 12)],
               "mov  ecx [rbp + 0x00000100]");
 
     disas.curIdx = 12;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(12, 19)],
               "mov  ecx 0x00080000");
 }
@@ -304,22 +304,22 @@ TEST(disas, MODRM_SIB_RSP) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
               "mov  edx [rax + rcx * 1]");
 
     disas.curIdx = 3;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 7)],
               "mov  edx [1 + rax + rcx * 1]");
 
     disas.curIdx = 7;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(7, 10)],
               "mov  edx [rax + rcx * 2]");
 
     disas.curIdx = 10;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(10, 13)],
               "mov  edx [rsp]");
 }
@@ -332,13 +332,13 @@ TEST(disas, ADD_IMM) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 2)],
               "add  eax eax");
 
     disas.curIdx = 2;
 
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 5)],
               "add  eax 0x01");
 }
@@ -357,49 +357,42 @@ TEST(disas, MODRM_OPCODE) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
               "add  eax 0x01");
 
     disas.curIdx = 3;
-    res = disas.step();
-    ASSERT_EQ(res.first, "or");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 6)],
               "or  eax 0x01");
 
     disas.curIdx = 6;
-    res = disas.step();
-    ASSERT_EQ(res.first, "adc");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(6, 9)],
               "adc  eax 0x01");
 
     disas.curIdx = 9;
-    res = disas.step();
-    ASSERT_EQ(res.first, "sbb");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(9, 12)],
               "sbb  eax 0x01");
 
     disas.curIdx = 12;
-    res = disas.step();
-    ASSERT_EQ(res.first, "and");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(12, 15)],
               "and  eax 0x01");
 
     disas.curIdx = 15;
-    res = disas.step();
-    ASSERT_EQ(res.first, "sub");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(15, 18)],
               "sub  eax 0x01");
 
     disas.curIdx = 18;
-    res = disas.step();
-    ASSERT_EQ(res.first, "xor");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(18, 21)],
               "xor  eax 0x01");
 
     disas.curIdx = 21;
-    res = disas.step();
-    ASSERT_EQ(res.first, "cmp");
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(21, 24)],
               "cmp  eax 0x01");
 }
@@ -412,12 +405,12 @@ TEST(disas, REXW) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
               "add  eax 0x01");
 
     disas.curIdx = 3;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 7)],
               "add  rax 0x01");
 }
@@ -431,17 +424,17 @@ TEST(disas, REXRXB) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 4)],
               "add  [rcx + rdx * 4] r8d");
 
     disas.curIdx = 4;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(4, 8)],
               "add  [rcx + r10 * 4] eax");
 
     disas.curIdx = 8;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(8, 12)],
               "add  [r9 + rdx * 4] eax");
 }
@@ -456,17 +449,17 @@ TEST(disas, TWOBYTE) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
               "imul  eax ebx");
 
     disas.curIdx = 3;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 12)],
               "movsx  rax 0x00000000");
 
     disas.curIdx = 12;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(12, 15)],
               "movsxd  rax ebx");
 }
@@ -481,22 +474,22 @@ TEST(disas, CFInstructions) {
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curIdx = 0;
-    std::pair<std::string, uint64_t> res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 5)],
               "call 12 ; relative offset = 7");
 
     disas.curIdx = 5;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(5, 7)],
               "jz 9 ; relative offset = 2");
 
     disas.curIdx = 7;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(7, 9)],
               "jmp 13 ; relative offset = 4");
 
     disas.curIdx = 9;
-    res = disas.step();
+    disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(9, 11)],
               "jmp -3 ; relative offset = -14");
 }
