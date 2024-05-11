@@ -117,9 +117,9 @@ struct LinearSweepDisAssembler : public DisAssembler {
                 DisassembledInstruction instruction = step();
                 curAddr = instruction.startAddr + instruction.instructionLen;
             } catch (const std::exception &e) {
-                std::cerr << std::to_string(curAddr) << ": " << e.what()
-                          << std::endl;
-                storeError(curAddr, 1);
+                std::stringstream ss;
+                ss << std::hex << curAddr;
+                std::cerr << ss.str() << ": " << e.what() << std::endl;
                 curAddr += 1;
             }
         }

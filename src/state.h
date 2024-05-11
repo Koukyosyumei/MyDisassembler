@@ -195,9 +195,11 @@ struct State {
             reg2mnem = OP_LOOKUP.at(std::make_pair(Prefix::NONE, opcodeByte));
             prefix = Prefix::NONE;
         } else {
+            std::stringstream ss;
+            ss << std::hex << opcodeByte;
             throw OPCODE_LOOKUP_ERROR(
                 "Unknown combination of the prefix and the opcodeByte: (" +
-                to_string(prefix) + ", " + std::to_string(opcodeByte) + ")");
+                to_string(prefix) + ", " + ss.str() + ")");
         }
 
         // We sometimes need reg of modrm to determine the opecode
@@ -225,10 +227,12 @@ struct State {
             remOps = std::get<1>(res);
             operands = std::get<2>(res);
         } else {
+            std::stringstream ss;
+            ss << std::hex << opcodeByte;
             throw OPERAND_LOOKUP_ERROR(
                 "Unknown combination of prefix, mnemonic and opcodeByte: (" +
                 to_string(prefix) + ", " + to_string(mnemonic) + ", " +
-                std::to_string(opcodeByte) + ")");
+                ss.str() + ")");
         }
     }
 

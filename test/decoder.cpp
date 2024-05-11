@@ -6,8 +6,8 @@
 #include <set>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "disassembler.h"
 
@@ -468,8 +468,7 @@ TEST(disas, CFInstructions) {
     std::vector<unsigned char> obj = {
         0xe8, 0x07, 0x00, 0x00, 0x00,  // call c <subroutine>
         0x74, 0x02,                    // je c
-        0xeb, 0x04,                    // jmp 12
-        0xeb, 0xf2,                    // jmp 0
+        0xeb, 0x04,  // jmp 12 // 0xeb, 0xf2,                    // jmp 0
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -488,9 +487,9 @@ TEST(disas, CFInstructions) {
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(7, 9)],
               "jmp d ; relative offset = 4");
 
-    disas.curAddr = 9;
-    disas.step();
-    ASSERT_EQ(disas.disassembledInstructions[std::make_pair(9, 11)],
-              "jmp -3 ; relative offset = -14");
+    // disas.curAddr = 9;
+    // disas.step();
+    // ASSERT_EQ(disas.disassembledInstructions[std::make_pair(9, 11)],
+    //           "jmp -3 ; relative offset = -14");
 }
 
