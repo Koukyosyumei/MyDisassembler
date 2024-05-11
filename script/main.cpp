@@ -60,13 +60,16 @@ int main(int argc, char* argv[]) {
     std::unordered_map<long long, std::string> addr2symbol;
 
     load(binaryPath, binaryBytes);
+
+    // parse the file header
     std::copy_n(binaryBytes.begin(), sizeof(header),
                 reinterpret_cast<unsigned char*>(&header));
     std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
                     (int)header.e_shstrndx * (int)header.e_shentsize,
                 sizeof(shstr), reinterpret_cast<unsigned char*>(&shstr));
 
-    // parse the file header
+    std::cout << "e_entry: " << std::hex << header.e_entry << std::endl;
+
     for (int sid = 0; sid < (int)header.e_shnum; sid++) {
         ELF64_SECTION_HEADER sh;
         std::copy_n(binaryBytes.begin() + (int)header.e_shoff +
@@ -94,27 +97,32 @@ int main(int argc, char* argv[]) {
                 (int)section_headers[".strtab"].sh_offset + (int)sym.st_name);
 
             if (sym_name.size() > 0) {
-                addr2symbol.insert(
-                    std::make_pair((long long)sym.st_value, sym_name));
+                addr2symbol.insert(std::make_pair(
+                    (long long)section_headers[".text"].sh_offset +
+                        (long long)sym.st_value,
+                    sym_name));
             }
         }
     }
 
     // parse the .text section
     if (section_headers.find(".text") != section_headers.end()) {
+        std::cout << "sh_offset: " << (int)section_headers[".text"].sh_offset
+                  << std::endl;
+
+        /*
         std::vector<unsigned char> text_section_binaryBytes(
             binaryBytes.begin() + (int)section_headers[".text"].sh_offset,
             binaryBytes.begin() + (int)section_headers[".text"].sh_offset +
                 (int)section_headers[".text"].sh_size);
+        */
 
         DisAssembler* da;
 
         if (strategy == "ls" || strategy == "linearsweep") {
-            da = new LinearSweepDisAssembler(text_section_binaryBytes,
-                                             addr2symbol);
+            da = new LinearSweepDisAssembler(binaryBytes, addr2symbol);
         } else if (strategy == "rd" || strategy == "recursivedescent") {
-            da = new RecursiveDescentDisAssembler(text_section_binaryBytes,
-                                                  addr2symbol);
+            da = new RecursiveDescentDisAssembler(binaryBytes, addr2symbol);
         } else {
             std::cerr << strategy
                       << " is not supported as a valid strategy. We currently "
@@ -122,11 +130,12 @@ int main(int argc, char* argv[]) {
             std::cerr << "The default strategy (linearsweep) is used for the "
                          "following task."
                       << std::endl;
-            da = new LinearSweepDisAssembler(text_section_binaryBytes,
-                                             addr2symbol);
+            da = new LinearSweepDisAssembler(binaryBytes, addr2symbol);
         }
 
-        da->disas();
+        da->disas((uint64_t)section_headers[".text"].sh_offset,
+                  (uint64_t)section_headers[".text"].sh_offset +
+                      (uint64_t)section_headers[".text"].sh_size - 1);
 
         std::sort(da->disassembledPositions.begin(),
                   da->disassembledPositions.end());

@@ -25,14 +25,14 @@ struct DisAssembler {
         &binaryBytes;  // byte array of the object source
     const std::unordered_map<long long, std::string> &addr2symbol;
 
-    size_t curAddr;  // the current index to be decoded
+    uint64_t curAddr;  // the current index to be decoded
 
-    std::vector<std::pair<size_t, size_t>> disassembledPositions;
-    std::unordered_map<std::pair<size_t, size_t>, std::string>
+    std::vector<std::pair<uint64_t, uint64_t>> disassembledPositions;
+    std::unordered_map<std::pair<uint64_t, uint64_t>, std::string>
         disassembledInstructions;  // mapping of index to
                                    // disassembledInstructions
-    std::unordered_map<size_t, size_t> disassembledInstructionsLength;
-    std::vector<size_t> errorAddrs;  // keep track of error bytes indexes
+    std::unordered_map<uint64_t, uint64_t> disassembledInstructionsLength;
+    std::vector<uint64_t> errorAddrs;  // keep track of error bytes indexes
 
     DisAssembler(const std::vector<unsigned char> &binaryBytes,
                  const std::unordered_map<long long, std::string> &addr2symbol)
@@ -41,27 +41,27 @@ struct DisAssembler {
             std::vector<bool>(binaryBytes.size(), false);
     }
 
-    virtual void disas() = 0;
+    virtual void disas(uint64_t startAddr, uint64_t endAddr = -1) = 0;
 
     void storeInstruction(DisassembledInstruction instruction) {
-        size_t nextAddr = instruction.startAddr + instruction.instructionLen;
+        uint64_t nextAddr = instruction.startAddr + instruction.instructionLen;
 
         // skip if this has already been decoded
-        for (size_t idx = instruction.startAddr; idx < nextAddr; ++idx) {
+        for (uint64_t idx = instruction.startAddr; idx < nextAddr; ++idx) {
             if (isSuccessfullyDisAssembled[idx]) {
                 return;
             }
         }
 
         // mark the decoded regions
-        for (size_t idx = instruction.startAddr; idx < nextAddr; ++idx) {
+        for (uint64_t idx = instruction.startAddr; idx < nextAddr; ++idx) {
             isSuccessfullyDisAssembled[idx] = true;
         }
 
         // mark the regions causing errors
         if (!errorAddrs.empty()) {
-            size_t startErr = errorAddrs[0];
-            size_t instructionLengthErr = errorAddrs.size();
+            uint64_t startErr = errorAddrs[0];
+            uint64_t instructionLengthErr = errorAddrs.size();
             disassembledInstructions[std::make_pair(
                 startErr, startErr + instructionLengthErr)] =
                 UNKNOWN_INSTRUCTION;
@@ -108,8 +108,11 @@ struct DisAssembler {
 struct LinearSweepDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
-    void disas() {
-        while (curAddr < binaryBytes.size()) {
+    void disas(uint64_t startAddr, uint64_t endAddr = -1) {
+        curAddr = startAddr;
+        endAddr = (endAddr < 0) ? binaryBytes.size() - 1 : endAddr;
+
+        while (curAddr <= endAddr) {
             try {
                 DisassembledInstruction instruction = step();
                 curAddr = instruction.startAddr + instruction.instructionLen;
@@ -126,7 +129,8 @@ struct LinearSweepDisAssembler : public DisAssembler {
 struct RecursiveDescentDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
-    void popAddr(std::stack<uint64_t> &stackedAddrs, bool &isDone) {
+    void popAddr(std::stack<uint64_t> &stackedAddrs, std::vector<bool> &visited,
+                 bool &isDone) {
         while (true) {
             if (stackedAddrs.empty()) {
                 isDone = true;
@@ -134,60 +138,65 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
             } else {
                 curAddr = stackedAddrs.top();
                 stackedAddrs.pop();
-                if (!isSuccessfullyDisAssembled[curAddr]) {
+                if (!isSuccessfullyDisAssembled[curAddr] && !visited[curAddr]) {
                     break;
                 }
             }
         }
     }
 
-    void disas() {
+    void disas(uint64_t startAddr, uint64_t endAddr = -1) {
         bool isDone = false;
         std::stack<uint64_t> stackedAddrs;
+        std::vector<bool> visited(binaryBytes.size(), false);
+
+        curAddr = startAddr;
+        endAddr = (endAddr < 0) ? binaryBytes.size() - 1 : endAddr;
 
         while (!isDone) {
             try {
                 DisassembledInstruction instruction = step();
+                visited[curAddr] = true;
                 Mnemonic mnemonic = instruction.mnemonic;
 
-                size_t nextAddr =
+                uint64_t nextAddr =
                     instruction.startAddr + instruction.instructionLen;
-                size_t cfAddr = (size_t)((long long)instruction.startAddr +
-                                         (long long)instruction.instructionLen +
-                                         instruction.nextOffset);
+                uint64_t cfAddr =
+                    (uint64_t)((long long)instruction.startAddr +
+                               (long long)instruction.instructionLen +
+                               instruction.nextOffset);
 
-                if (mnemonic == Mnemonic::RET ||
-                    nextAddr >= binaryBytes.size()) {
-                    popAddr(stackedAddrs, isDone);
+                if (mnemonic == Mnemonic::RET || nextAddr > endAddr) {
+                    popAddr(stackedAddrs, visited, isDone);
                 } else if (isControlFlowInstruction(mnemonic)) {
                     if (nextAddr == cfAddr) {
-                        if (nextAddr < binaryBytes.size()) {
+                        if (nextAddr <= endAddr) {
                             curAddr = nextAddr;
                         } else if (!stackedAddrs.empty()) {
-                            popAddr(stackedAddrs, isDone);
+                            popAddr(stackedAddrs, visited, isDone);
                         } else {
                             isDone = true;
                             break;
                         }
                     } else {
-                        if (nextAddr < binaryBytes.size() &&
+                        if (nextAddr <= endAddr &&
                             !isSuccessfullyDisAssembled[nextAddr]) {
                             stackedAddrs.push(nextAddr);
                         }
-                        if (cfAddr < binaryBytes.size()) {
+                        if (cfAddr <= endAddr) {
                             curAddr = cfAddr;
                         } else if (!stackedAddrs.empty()) {
-                            popAddr(stackedAddrs, isDone);
+                            popAddr(stackedAddrs, visited, isDone);
                         } else {
                             isDone = true;
                             break;
                         }
                     }
                 } else {
-                    if (nextAddr < binaryBytes.size()) {
+                    if (nextAddr <= endAddr) {
                         curAddr = nextAddr;
                     } else if (!stackedAddrs.empty()) {
-                        popAddr(stackedAddrs, isDone);
+                        popAddr(stackedAddrs, visited, isDone);
                     } else {
                         isDone = true;
                         break;
@@ -195,13 +204,14 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                 }
 
             } catch (const std::exception &e) {
+                visited[curAddr] = true;
                 std::cerr << std::to_string(curAddr) << ": " << e.what()
                           << std::endl;
                 storeError(curAddr, 1);
-                if (curAddr + 1 < binaryBytes.size()) {
+                if (!visited[curAddr] && curAddr + 1 <= endAddr) {
                     curAddr += 1;
                 } else if (!stackedAddrs.empty()) {
-                    popAddr(stackedAddrs, isDone);
+                    popAddr(stackedAddrs, visited, isDone);
                 } else {
                     isDone = true;
                     break;

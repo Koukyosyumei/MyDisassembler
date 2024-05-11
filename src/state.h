@@ -37,8 +37,8 @@ inline long long decodeOffset(const std::string& val) {
 }
 
 typedef struct {
-    size_t startAddr;
-    size_t instructionLen;
+    uint64_t startAddr;
+    uint64_t instructionLen;
     Mnemonic mnemonic;
     std::string assemblyInstructionStr;
     long long nextOffset;
@@ -49,7 +49,7 @@ struct State {
     const std::unordered_map<long long, std::string>& addr2symbol;
 
     bool hasPrefixInstruction, hasREX, hasSIB, hasDisp8, hasDisp32;
-    size_t curAddr, instructionLen, prefixOffset;
+    uint64_t curAddr, instructionLen, prefixOffset;
     int opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
@@ -267,7 +267,7 @@ struct State {
     }
 
     // startAddr, targetLen, mnemonic, assemblyStr, nextOffset
-    DisassembledInstruction step(size_t startAddr) {
+    DisassembledInstruction step(uint64_t startAddr) {
         // ############### Initialize ##############################
         init();
         curAddr = startAddr;
@@ -363,9 +363,13 @@ struct State {
             nextOffset = decodeOffset(assemblyOperands[0]);
             long long labelAddr = ((long long)startAddr) +
                                   ((long long)instructionLen) + nextOffset;
-            std::string labelName = std::to_string(labelAddr);
+            std::string labelName;
             if (addr2symbol.find(labelAddr) != addr2symbol.end()) {
                 labelName = "<" + addr2symbol.at(labelAddr) + ">";
+            } else {
+                std::stringstream ss;
+                ss << std::hex << labelAddr;
+                labelName = ss.str();
             }
             assemblyInstructionStr =
                 to_string(mnemonic) + " " + labelName +
