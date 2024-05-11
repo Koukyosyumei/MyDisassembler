@@ -27,7 +27,7 @@ struct DisAssembler {
 
     uint64_t curAddr;  // the current index to be decoded
 
-    std::vector<std::pair<uint64_t, uint64_t>> disassembledPositions;
+    std::unordered_set<std::pair<uint64_t, uint64_t>> disassembledPositions;
     std::unordered_map<std::pair<uint64_t, uint64_t>, std::string>
         disassembledInstructions;  // mapping of index to
                                    // disassembledInstructions
@@ -65,7 +65,7 @@ struct DisAssembler {
             disassembledInstructions[std::make_pair(
                 startErr, startErr + instructionLengthErr)] =
                 UNKNOWN_INSTRUCTION;
-            disassembledPositions.push_back(
+            disassembledPositions.emplace(
                 std::make_pair(startErr, startErr + instructionLengthErr));
             errorAddrs.clear();
         }
@@ -73,7 +73,7 @@ struct DisAssembler {
         disassembledInstructions[std::make_pair(instruction.startAddr,
                                                 nextAddr)] =
             instruction.assemblyInstructionStr;
-        disassembledPositions.push_back(
+        disassembledPositions.emplace(
             std::make_pair(instruction.startAddr, nextAddr));
         disassembledInstructionsLength[instruction.startAddr] =
             instruction.instructionLen;
@@ -167,54 +167,53 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                                instruction.nextOffset);
 
                 if (mnemonic == Mnemonic::RET || nextAddr > endAddr) {
+                    // return to the callee
                     popAddr(stackedAddrs, visited, isDone);
                 } else if (isControlFlowInstruction(mnemonic)) {
                     if (nextAddr == cfAddr) {
-                        if (nextAddr <= endAddr) {
+                        if (nextAddr <= endAddr && !visited[nextAddr]) {
                             curAddr = nextAddr;
-                        } else if (!stackedAddrs.empty()) {
-                            popAddr(stackedAddrs, visited, isDone);
                         } else {
-                            isDone = true;
-                            break;
+                            popAddr(stackedAddrs, visited, isDone);
                         }
                     } else {
                         if (nextAddr <= endAddr &&
-                            !isSuccessfullyDisAssembled[nextAddr]) {
+                            !isSuccessfullyDisAssembled[nextAddr] &&
+                            !visited[nextAddr]) {
                             stackedAddrs.push(nextAddr);
+
+                            std::stringstream cs, ns;
+                            cs << std::hex << curAddr;
+                            ns << std::hex << nextAddr;
+                            std::cerr << ns.str() << " (nextAddr) from "
+                                      << cs.str() << std::endl;
                         }
-                        if (cfAddr <= endAddr) {
+                        if (cfAddr <= endAddr && !visited[cfAddr]) {
                             curAddr = cfAddr;
-                        } else if (!stackedAddrs.empty()) {
-                            popAddr(stackedAddrs, visited, isDone);
                         } else {
-                            isDone = true;
-                            break;
+                            popAddr(stackedAddrs, visited, isDone);
                         }
                     }
                 } else {
-                    if (nextAddr <= endAddr) {
+                    if (nextAddr <= endAddr && !visited[nextAddr]) {
                         curAddr = nextAddr;
-                    } else if (!stackedAddrs.empty()) {
-                        popAddr(stackedAddrs, visited, isDone);
                     } else {
-                        isDone = true;
-                        break;
+                        popAddr(stackedAddrs, visited, isDone);
                     }
                 }
 
             } catch (const std::exception &e) {
                 visited[curAddr] = true;
-                std::cerr << std::to_string(curAddr) << ": " << e.what()
-                          << std::endl;
+
+                std::stringstream ss;
+                ss << std::hex << curAddr;
+                std::cerr << ss.str() << ": " << e.what() << std::endl;
                 storeError(curAddr, 1);
-                if (!visited[curAddr] && curAddr + 1 <= endAddr) {
+
+                if (!visited[curAddr + 1] && curAddr + 1 <= endAddr) {
                     curAddr += 1;
-                } else if (!stackedAddrs.empty()) {
-                    popAddr(stackedAddrs, visited, isDone);
                 } else {
-                    isDone = true;
-                    break;
+                    popAddr(stackedAddrs, visited, isDone);
                 }
             }
         }

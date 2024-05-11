@@ -137,11 +137,13 @@ int main(int argc, char* argv[]) {
                   (uint64_t)section_headers[".text"].sh_offset +
                       (uint64_t)section_headers[".text"].sh_size - 1);
 
-        std::sort(da->disassembledPositions.begin(),
-                  da->disassembledPositions.end());
+        std::vector<std::pair<uint64_t, uint64_t>> disassembledPositionsVec(
+            da->disassembledPositions.begin(), da->disassembledPositions.end());
+        std::sort(disassembledPositionsVec.begin(),
+                  disassembledPositionsVec.end());
 
         std::cout << "section: .text ----" << std::endl;
-        for (const std::pair<size_t, size_t> k : da->disassembledPositions) {
+        for (const std::pair<size_t, size_t> k : disassembledPositionsVec) {
             if (da->disassembledInstructions.find(k) !=
                 da->disassembledInstructions.end()) {
                 if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
