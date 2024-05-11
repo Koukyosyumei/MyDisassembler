@@ -102,6 +102,33 @@ struct State {
         assemblyOperands.shrink_to_fit();
     }
 
+    bool parseEndBr() {
+        if (curAddr + 3 < objectSource.size()) {
+            if (objectSource[curAddr] == 0xF3 &&
+                objectSource[curAddr + 1] == 0x0F &&
+                objectSource[curAddr + 2] == 0x1E &&
+                objectSource[curAddr + 3] == 0xFA) {
+                assemblyInstruction.push_back(to_string(Mnemonic::ENDBR64));
+                opEnc = OpEnc::NP;
+                instructionLen += 4;
+                curAddr += 4;
+                return true;
+            } else if (objectSource[curAddr] == 0xF3 &&
+                       objectSource[curAddr + 1] == 0x0F &&
+                       objectSource[curAddr + 2] == 0x1E &&
+                       objectSource[curAddr + 3] == 0xFB) {
+                assemblyInstruction.push_back(to_string(Mnemonic::ENDBR32));
+                opEnc = OpEnc::NP;
+                instructionLen += 4;
+                curAddr += 4;
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
     void parsePrefix() {
         if (objectSource[curAddr] == 0x66) {
             prefix = Prefix::P66;
@@ -275,13 +302,15 @@ struct State {
         // the general format of the x86-64 operations
         // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
 
-        parsePrefixInstructions();
-        parsePrefix();
-        parseREX();
-        parseOpecode();
-        parseModRM();
-        parseSIB();
-        parseAddressOffset();
+        if (!parseEndBr()) {
+            parsePrefixInstructions();
+            parsePrefix();
+            parseREX();
+            parseOpecode();
+            parseModRM();
+            parseSIB();
+            parseAddressOffset();
+        }
 
         // ############### Process Operands ################
         std::vector<uint8_t> imm;

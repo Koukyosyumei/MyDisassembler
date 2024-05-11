@@ -112,6 +112,8 @@ inline std::string to_string(Prefix prefix) {
 }
 
 enum class Mnemonic {
+    ENDBR64,
+    ENDBR32,
     SHLD,
     SHRD,
     MOV,
@@ -220,6 +222,10 @@ enum class Mnemonic {
 
 inline std::string to_string(Mnemonic mnemonic) {
     switch (mnemonic) {
+        case Mnemonic::ENDBR64:
+            return "endbr64";
+        case Mnemonic::ENDBR32:
+            return "endbr32";
         case Mnemonic::SHLD:
             return "shld";
         case Mnemonic::SHRD:

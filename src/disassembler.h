@@ -181,12 +181,6 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                             !isSuccessfullyDisAssembled[nextAddr] &&
                             !visited[nextAddr]) {
                             stackedAddrs.push(nextAddr);
-
-                            std::stringstream cs, ns;
-                            cs << std::hex << curAddr;
-                            ns << std::hex << nextAddr;
-                            std::cerr << ns.str() << " (nextAddr) from "
-                                      << cs.str() << std::endl;
                         }
                         if (cfAddr <= endAddr && !visited[cfAddr]) {
                             curAddr = cfAddr;

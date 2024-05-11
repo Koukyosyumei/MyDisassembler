@@ -476,7 +476,7 @@ TEST(disas, CFInstructions) {
     disas.curAddr = 0;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 5)],
-              "call 12 ; relative offset = 7");
+              "call c ; relative offset = 7");
 
     disas.curAddr = 5;
     disas.step();
@@ -486,7 +486,7 @@ TEST(disas, CFInstructions) {
     disas.curAddr = 7;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(7, 9)],
-              "jmp 13 ; relative offset = 4");
+              "jmp d ; relative offset = 4");
 
     disas.curAddr = 9;
     disas.step();

@@ -12,6 +12,9 @@
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
     OP_LOOKUP = {
+        // ENDBR
+        {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFA")}, {{-1, Mnemonic::ENDBR64}}},
+        {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFB")}, {{-1, Mnemonic::ENDBR32}}},
         // IN
         {{Prefix::NONE, u2d("\xE4")}, {{-1, Mnemonic::IN}}},
         {{Prefix::NONE, u2d("\xE5")}, {{-1, Mnemonic::IN}}},
@@ -653,6 +656,11 @@ const std::unordered_map<
     std::tuple<Prefix, Mnemonic, int>,
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
     OPERAND_LOOKUP = {
+        // ENDBR
+        {{Prefix::NONE, Mnemonic::ENDBR64, u2d("\xF3\x0F\x1E\xFA")},
+         {OpEnc::NP, {}, {}}},
+        {{Prefix::NONE, Mnemonic::ENDBR32, u2d("\xF3\x0F\x1E\xFB")},
+         {OpEnc::NP, {}, {}}},
         // IN
         {{Prefix::NONE, Mnemonic::IN, u2d("\xE4")},
          {OpEnc::I, {"ib"}, {Operand::al, Operand::imm8}}},
@@ -1756,5 +1764,6 @@ const std::unordered_map<
          {OpEnc::MI, {"1"}, {Operand::rm64, Operand::imm8}}},
 };
 
-// Supported operators set
-const std::unordered_set<std::string> SUPPORTED_OPERATORS;
+const std::vector<std::pair<int, int>> MULTI_BYTES_OPECODES = {
+    std::make_pair(4, u2d("\xF3\x0F\x1E\xFA")),
+    std::make_pair(4, u2d("\xF3\x0F\x1E\xFB"))};
