@@ -623,3 +623,5 @@ const std::unordered_map<int, std::string> PREFIX_INSTRUCTIONS_MAP = {
 };
 
 const std::vector<int> SCALE_FACTOR = {1, 2, 4, 8};
+
+const size_t PLT_SEC_ENTRY_SIZE = 16;

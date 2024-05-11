@@ -39,3 +39,11 @@ typedef struct {
     uint64_t st_value;       // 8
     uint64_t st_size;        // 8
 } ELF64_SYM;
+
+
+typedef struct
+{
+  uint64_t	r_offset;		/* Address */
+  uint64_t	r_info;			/* Relocation type and symbol index */
+  int64_t	r_addend;		/* Addend */
+} ELF64_RELA;

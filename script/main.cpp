@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "disassembler.h"
@@ -58,6 +59,7 @@ int main(int argc, char* argv[]) {
     ELF64_SECTION_HEADER shstr;
     std::unordered_map<std::string, ELF64_SECTION_HEADER> section_headers;
     std::unordered_map<long long, std::string> addr2symbol;
+    std::unordered_map<long long, std::string> pltIdx2symbol;
 
     load(binaryPath, binaryBytes);
 
@@ -105,6 +107,42 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if (section_headers.find(".rela.plt") != section_headers.end() &&
+        section_headers.find(".dynsym") != section_headers.end() &&
+        section_headers.find(".dynstr") != section_headers.end()) {
+        int rela_num = (int)section_headers[".rela.plt"].sh_size /
+                       (int)(sizeof(ELF64_RELA));
+        for (int sid = 0; sid < rela_num; sid++) {
+            ELF64_RELA rela;
+            std::copy_n(binaryBytes.begin() +
+                            (int)section_headers[".rela.plt"].sh_offset +
+                            sid * sizeof(ELF64_RELA),
+                        sizeof(rela), reinterpret_cast<unsigned char*>(&rela));
+
+            ELF64_SYM sym;
+            std::copy_n(binaryBytes.begin() +
+                            (int)section_headers[".dynsym"].sh_offset +
+                            (rela.r_info >> 32) * sizeof(ELF64_SYM),
+                        sizeof(sym), reinterpret_cast<unsigned char*>(&sym));
+
+            std::string sym_name = getStringFromOffset(
+                binaryBytes,
+                (int)section_headers[".dynstr"].sh_offset + (int)sym.st_name);
+            if (sym_name.size() > 0) {
+                pltIdx2symbol.insert(std::make_pair(sid, sym_name));
+            }
+        }
+    }
+
+    if (section_headers.find(".plt.sec") != section_headers.end()) {
+        for (auto kv : pltIdx2symbol) {
+            addr2symbol.insert(
+                std::make_pair(section_headers[".plt.sec"].sh_offset +
+                                   kv.first * PLT_SEC_ENTRY_SIZE,
+                               kv.second));
+        }
+    }
+
     // parse the .text section
     if (section_headers.find(".text") != section_headers.end()) {
         std::cout << "sh_offset: " << (int)section_headers[".text"].sh_offset
@@ -142,14 +180,61 @@ int main(int argc, char* argv[]) {
         std::sort(disassembledPositionsVec.begin(),
                   disassembledPositionsVec.end());
 
-        std::cout << "section: .text ----" << std::endl;
-        for (const std::pair<size_t, size_t> k : disassembledPositionsVec) {
+        bool enter_plt_got = false;
+        bool enter_plt_sec = false;
+        bool enter_text = false;
+
+        for (const std::pair<size_t, size_t>& k : disassembledPositionsVec) {
+            if (k.first >= section_headers[".plt.got"].sh_offset &&
+                k.first < section_headers[".plt.got"].sh_offset +
+                              section_headers[".plt.got"].sh_size) {
+                if (!enter_plt_got) {
+                    std::cout << std::endl
+                              << "section: .plt.got ----" << std::endl;
+                    enter_plt_got = true;
+                    enter_plt_sec = false;
+                    enter_text = false;
+                }
+            }
+
+            else if (k.first >= section_headers[".plt.sec"].sh_offset &&
+                     k.first < section_headers[".plt.sec"].sh_offset +
+                                   section_headers[".plt.sec"].sh_size) {
+                if (!enter_plt_sec) {
+                    std::cout << std::endl
+                              << "section: .plt.sec ----" << std::endl;
+                    enter_plt_sec = true;
+                    enter_plt_got = false;
+                    enter_text = false;
+                }
+            }
+
+            else if (k.first >= section_headers[".text"].sh_offset &&
+                     k.first < section_headers[".text"].sh_offset +
+                                   section_headers[".text"].sh_size) {
+                if (!enter_text) {
+                    std::cout << std::endl
+                              << "section: .text ----" << std::endl;
+                    enter_text = true;
+                    enter_plt_sec = false;
+                    enter_plt_got = false;
+                }
+            }
+
             if (da->disassembledInstructions.find(k) !=
                 da->disassembledInstructions.end()) {
                 if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
-                    std::cout << std::endl
-                              << "<" << addr2symbol.at(k.first) << ">"
-                              << std::endl;
+                    if (enter_text) {
+                        std::cout << std::endl
+                                  << std::hex << k.first << " <"
+                                  << addr2symbol.at(k.first) << ">"
+                                  << std::endl;
+                    } else {
+                        std::cout << std::endl
+                                  << std::hex << k.first << " <"
+                                  << addr2symbol.at(k.first) << "@plt>"
+                                  << std::endl;
+                    }
                 }
                 std::cout << " " << k.first << ": "
                           << da->disassembledInstructions.at(k) << std::endl;
