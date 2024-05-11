@@ -169,7 +169,6 @@ enum class Mnemonic {
     JNS,
     JNAE,
     JNA,
-    JZBE,
     JPO,
     CALL,
     RET,
@@ -336,8 +335,6 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "jnae";
         case Mnemonic::JNA:
             return "jna";
-        case Mnemonic::JZBE:
-            return "jzbe";
         case Mnemonic::JPO:
             return "jpo";
         case Mnemonic::CALL:
@@ -443,7 +440,7 @@ inline bool isJCCInstruction(Mnemonic mnemonic) {
     return mnemonic == Mnemonic::JO || mnemonic == Mnemonic::JNO ||
            mnemonic == Mnemonic::JNAE || mnemonic == Mnemonic::JNB ||
            mnemonic == Mnemonic::JZ || mnemonic == Mnemonic::JNZ ||
-           mnemonic == Mnemonic::JNA || mnemonic == Mnemonic::JZBE ||
+           mnemonic == Mnemonic::JNA || mnemonic == Mnemonic::JNBE ||
            mnemonic == Mnemonic::JS || mnemonic == Mnemonic::JNS ||
            mnemonic == Mnemonic::JP || mnemonic == Mnemonic::JPO ||
            mnemonic == Mnemonic::JNGE || mnemonic == Mnemonic::JNL ||
