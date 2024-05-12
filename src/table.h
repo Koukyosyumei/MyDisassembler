@@ -12,6 +12,31 @@
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
     OP_LOOKUP = {
+        // SETNE
+        {{Prefix::NONE, u2d("\x0F\x95")}, {{-1, Mnemonic::SETNE}}},
+        {{Prefix::REX, u2d("\x0F\x95")}, {{-1, Mnemonic::SETNE}}},
+
+        // FADD
+        {{Prefix::NONE, u2d("\xD8")}, {{0, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC")}, {{0, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC0")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC1")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC2")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC3")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC4")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC5")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC6")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xD8\xC7")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC0")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC1")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC2")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC3")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC4")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC5")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC6")}, {{-1, Mnemonic::FADD}}},
+        {{Prefix::NONE, u2d("\xDC\xC7")}, {{-1, Mnemonic::FADD}}},
+
+        // FXCH
         {{Prefix::NONE, u2d("\xD9\xC8")}, {{-1, Mnemonic::FXCH}}},
         {{Prefix::NONE, u2d("\xD9\xC9")}, {{-1, Mnemonic::FXCH}}},
         {{Prefix::NONE, u2d("\xD9\xCA")}, {{-1, Mnemonic::FXCH}}},
@@ -20,14 +45,18 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::NONE, u2d("\xD9\xCD")}, {{-1, Mnemonic::FXCH}}},
         {{Prefix::NONE, u2d("\xD9\xCE")}, {{-1, Mnemonic::FXCH}}},
         {{Prefix::NONE, u2d("\xD9\xCF")}, {{-1, Mnemonic::FXCH}}},
+
         // CMOVE
         {{Prefix::NONE, u2d("\x0F\x44")}, {{-1, Mnemonic::CMOVE}}},
+
         // MOVAPS
         {{Prefix::NONE, u2d("\x0F\x28")}, {{-1, Mnemonic::MOVAPS}}},
         {{Prefix::NONE, u2d("\x0F\x29")}, {{-1, Mnemonic::MOVAPS}}},
+
         // ENDBR
         {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFA")}, {{-1, Mnemonic::ENDBR64}}},
         {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFB")}, {{-1, Mnemonic::ENDBR32}}},
+
         // IN
         {{Prefix::NONE, u2d("\xE4")}, {{-1, Mnemonic::IN}}},
         {{Prefix::NONE, u2d("\xE5")}, {{-1, Mnemonic::IN}}},
@@ -70,6 +99,7 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::NONE, u2d("\xF8")}, {{-1, Mnemonic::CLC}}},
         {{Prefix::NONE, u2d("\xFC")}, {{-1, Mnemonic::CLD}}},
         {{Prefix::NONE, u2d("\xF9")}, {{-1, Mnemonic::STC}}},
+
         // ADD, ADC, SUB, SBB, AND, OR, XOR, CMP
         {{Prefix::NONE, u2d("\x04")}, {{-1, Mnemonic::ADD}}},
         {{Prefix::NONE, u2d("\x14")}, {{-1, Mnemonic::ADC}}},
@@ -675,6 +705,7 @@ const std::unordered_map<std::pair<Prefix, int>,
         {{Prefix::NONE, u2d("\x55")}, {{-1, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x56")}, {{-1, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x57")}, {{-1, Mnemonic::PUSH}}},
+        {{Prefix::NONE, u2d("\x6A")}, {{-1, Mnemonic::PUSH}}},
         {{Prefix::NONE, u2d("\x68")}, {{-1, Mnemonic::PUSH}}},
 };
 
@@ -684,6 +715,49 @@ const std::unordered_map<
     std::tuple<Prefix, Mnemonic, int>,
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
     OPERAND_LOOKUP = {
+        // SETNE
+        {{Prefix::NONE, Mnemonic::SETNE, u2d("\x0F\x95")},
+         {OpEnc::M, {}, {Operand::rm8}}},
+        {{Prefix::REX, Mnemonic::SETNE, u2d("\x0F\x95")},
+         {OpEnc::M, {}, {Operand::rm8}}},
+
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8")},
+         {OpEnc::M, {"0"}, {Operand::m32fp}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC")},
+         {OpEnc::M, {"0"}, {Operand::m64fp}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC0")},
+         {OpEnc::NP, {"0"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC1")},
+         {OpEnc::NP, {"1"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC2")},
+         {OpEnc::NP, {"2"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC3")},
+         {OpEnc::NP, {"3"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC4")},
+         {OpEnc::NP, {"4"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC5")},
+         {OpEnc::NP, {"5"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC6")},
+         {OpEnc::NP, {"6"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xD8\xC7")},
+         {OpEnc::NP, {"7"}, {Operand::st0, Operand::sti}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC0")},
+         {OpEnc::NP, {"0"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC1")},
+         {OpEnc::NP, {"1"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC2")},
+         {OpEnc::NP, {"2"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC3")},
+         {OpEnc::NP, {"3"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC4")},
+         {OpEnc::NP, {"4"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC5")},
+         {OpEnc::NP, {"5"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC6")},
+         {OpEnc::NP, {"6"}, {Operand::sti, Operand::st0}}},
+        {{Prefix::NONE, Mnemonic::FADD, u2d("\xDC\xC7")},
+         {OpEnc::NP, {"7"}, {Operand::sti, Operand::st0}}},
+
         // FXCH
         {{Prefix::NONE, Mnemonic::FXCH, u2d("\xD9\xC8")},
          {OpEnc::NP, {"0"}, {Operand::sti}}},
@@ -701,19 +775,23 @@ const std::unordered_map<
          {OpEnc::NP, {"6"}, {Operand::sti}}},
         {{Prefix::NONE, Mnemonic::FXCH, u2d("\xD9\xCF")},
          {OpEnc::NP, {"7"}, {Operand::sti}}},
+
         // CMOVE
         {{Prefix::NONE, Mnemonic::CMOVE, u2d("\x0F\x44")},
          {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm32}}},
+
         // MOVAPS
         {{Prefix::NONE, Mnemonic::MOVAPS, u2d("\x0F\x28")},
          {OpEnc::A, {"/r"}, {Operand::xmm, Operand::xm128}}},
         {{Prefix::NONE, Mnemonic::MOVAPS, u2d("\x0F\x29")},
          {OpEnc::B, {"/r"}, {Operand::xm128, Operand::xmm}}},
+
         // ENDBR
         {{Prefix::NONE, Mnemonic::ENDBR64, u2d("\xF3\x0F\x1E\xFA")},
          {OpEnc::NP, {}, {}}},
         {{Prefix::NONE, Mnemonic::ENDBR32, u2d("\xF3\x0F\x1E\xFB")},
          {OpEnc::NP, {}, {}}},
+
         // IN
         {{Prefix::NONE, Mnemonic::IN, u2d("\xE4")},
          {OpEnc::I, {"ib"}, {Operand::al, Operand::imm8}}},
@@ -1638,6 +1716,8 @@ const std::unordered_map<
          {OpEnc::O, {"6"}, {Operand::reg32}}},
         {{Prefix::NONE, Mnemonic::PUSH, u2d("\x57")},
          {OpEnc::O, {"7"}, {Operand::reg32}}},
+        {{Prefix::NONE, Mnemonic::PUSH, u2d("\x6A")},
+         {OpEnc::I, {"ib"}, {Operand::imm8}}},
         {{Prefix::NONE, Mnemonic::PUSH, u2d("\x68")},
          {OpEnc::I, {"id"}, {Operand::imm32}}},
 

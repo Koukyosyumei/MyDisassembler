@@ -68,11 +68,14 @@ struct State {
     const std::vector<unsigned char>& objectSource;
     const std::unordered_map<uint64_t, std::string>& addr2symbol;
 
-    bool hasInstructionPrefix, hasREX, hasSIB, hasDisp8, hasDisp32;
+    bool hasInstructionPrefix, hasSegmentOverridePrefix, hasREX, hasSIB,
+        hasDisp8, hasDisp32;
     uint64_t curAddr, instructionLen, prefixOffset;
     int instructionPrefixByte, opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
+    std::string prefixSegmentOverrideStr;
+
     Mnemonic mnemonic;
     Prefix prefix;
     REX rex;
@@ -98,6 +101,7 @@ struct State {
         : objectSource(objectSource),
           addr2symbol(addr2symbol),
           hasInstructionPrefix(false),
+          hasSegmentOverridePrefix(false),
           hasREX(false),
           hasSIB(false),
           hasDisp8(false),
@@ -117,7 +121,8 @@ struct State {
                 objectSource[curAddr + 1] == 0x0F &&
                 objectSource[curAddr + 2] == 0x1E &&
                 objectSource[curAddr + 3] == 0xFA) {
-                disassembledInstruction.push_back(to_string(Mnemonic::ENDBR64));
+                disassembledInstruction.emplace_back(
+                    to_string(Mnemonic::ENDBR64));
                 opEnc = OpEnc::NP;
                 instructionLen += 4;
                 curAddr += 4;
@@ -126,7 +131,8 @@ struct State {
                        objectSource[curAddr + 1] == 0x0F &&
                        objectSource[curAddr + 2] == 0x1E &&
                        objectSource[curAddr + 3] == 0xFB) {
-                disassembledInstruction.push_back(to_string(Mnemonic::ENDBR32));
+                disassembledInstruction.emplace_back(
+                    to_string(Mnemonic::ENDBR32));
                 opEnc = OpEnc::NP;
                 instructionLen += 4;
                 curAddr += 4;
@@ -149,6 +155,20 @@ struct State {
         }
     }
 
+    void parseSegmentOverridePrefix() {
+        if (objectSource[curAddr] == 0x64) {
+            hasSegmentOverridePrefix = true;
+            prefixSegmentOverrideStr = "fs";
+            instructionLen += 1;
+            curAddr += 1;
+        } else if (objectSource[curAddr] == 0x65) {
+            hasSegmentOverridePrefix = true;
+            prefixSegmentOverrideStr = "gs";
+            instructionLen += 1;
+            curAddr += 1;
+        }
+    }
+
     /**
      * @brief Parses instruction prefixes like the operand size override.
      */
@@ -158,7 +178,7 @@ struct State {
             hasInstructionPrefix = true;
             instructionPrefixByte = objectSource[curAddr];
             // prefixInstructionStr = PREFIX_INSTRUCTIONS_SET.at(startByte);
-            // disassembledInstruction.push_back(prefixInstructionStr);
+            // disassembledInstruction.emplace_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
             curAddr += 1;
@@ -250,19 +270,21 @@ struct State {
 
         if (hasInstructionPrefix) {
             if (instructionPrefixByte == 0xF0) {
-                disassembledInstruction.push_back("lock");
+                disassembledInstruction.emplace_back("lock");
             } else if (instructionPrefixByte == 0xF2) {
                 if (isControlFlowInstruction(mnemonic)) {
-                    disassembledInstruction.push_back("bnd");
+                    disassembledInstruction.emplace_back("bnd");
                 } else {
-                    disassembledInstruction.push_back("repne");
+                    disassembledInstruction.emplace_back("repne");
                 }
             } else if (instructionPrefixByte == 0xF3) {
-                disassembledInstruction.push_back("rep");
+                disassembledInstruction.emplace_back("rep");
+            } else if (instructionPrefixByte == 0x3E) {
+                disassembledInstruction.emplace_back("notrack");
             }
         }
 
-        disassembledInstruction.push_back(to_string(mnemonic));
+        disassembledInstruction.emplace_back(to_string(mnemonic));
 
         if (OPERAND_LOOKUP.find(std::make_tuple(
                 prefix, mnemonic, opcodeByte)) != OPERAND_LOOKUP.end()) {
@@ -387,6 +409,7 @@ struct State {
 
         if (!parseEndBr()) {
             parsePrefixInstructions();
+            parseSegmentOverridePrefix();
             parsePrefix();
             parseREX();
             parseOpecode();
@@ -405,10 +428,9 @@ struct State {
                 decodedTranslatedValue = to_string(operand);
             } else if (operand == Operand::sti) {
                 decodedTranslatedValue = "st(" + remOps[0] + ")";
-            } else if (isRM(operand) || isREG(operand) ||
-                       operand == Operand::m) {
+            } else if (isRM(operand) || isREG(operand) || isM(operand)) {
                 if (hasModrm(opEnc)) {
-                    if (isRM(operand) || operand == Operand::m) {
+                    if (isRM(operand) || isM(operand)) {
                         decodedTranslatedValue =
                             modrm.getAddrMode(operand, disp8, disp32);
                     } else {
@@ -432,10 +454,14 @@ struct State {
                     }
                 }
 
-                if ((isRM(operand) || operand == Operand::m) &&
-                    hasModrm(opEnc) && modrm.hasSib) {
+                if ((isRM(operand) || isM(operand)) && hasModrm(opEnc) &&
+                    modrm.hasSib) {
                     decodedTranslatedValue =
                         sib.getAddr(operand, disp8, disp32);
+                }
+                if (hasSegmentOverridePrefix) {
+                    decodedTranslatedValue =
+                        prefixSegmentOverrideStr + ":" + decodedTranslatedValue;
                 }
             } else if (isIMM(operand)) {
                 int immSize = 0;
@@ -465,14 +491,14 @@ struct State {
                 decodedTranslatedValue = ss.str();
             }
 
-            disassembledOperands.push_back(decodedTranslatedValue);
+            disassembledOperands.emplace_back(decodedTranslatedValue);
         }
 
         std::string ao = "";
         for (std::string& a : disassembledOperands) {
             ao += " " + a;
         }
-        disassembledInstruction.push_back(ao);
+        disassembledInstruction.emplace_back(ao);
 
         long long nextOffset = 0;
         std::string disassembledInstructionStr = "";

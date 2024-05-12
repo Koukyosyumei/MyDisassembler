@@ -25,6 +25,8 @@ enum class Operand {
     xm128,
     ym256,
     m,
+    m32fp,
+    m64fp,
     al,
     ax,
     eax,
@@ -35,6 +37,7 @@ enum class Operand {
     moffs64,
     cl,
     dx,
+    st0,
     sti,
 };
 
@@ -47,6 +50,11 @@ inline bool isRM(Operand operand) {
     return operand == Operand::rm8 || operand == Operand::rm16 ||
            operand == Operand::rm32 || operand == Operand::rm64 ||
            operand == Operand::xm128;
+}
+
+inline bool isM(Operand operand) {
+    return operand == Operand::m || operand == Operand::m32fp ||
+           operand == Operand::m64fp;
 }
 
 inline bool isREG(Operand operand) {
@@ -122,6 +130,7 @@ inline std::string to_string(Prefix prefix) {
 }
 
 enum class Mnemonic {
+    SETNE,
     FXCH,
     FADD,
     ENDBR64,
@@ -235,6 +244,8 @@ enum class Mnemonic {
 
 inline std::string to_string(Mnemonic mnemonic) {
     switch (mnemonic) {
+        case Mnemonic::SETNE:
+            return "setne";
         case Mnemonic::FADD:
             return "fadd";
         case Mnemonic::FXCH:
@@ -639,13 +650,15 @@ inline std::string to_string(OpEnc openc) {
     }
 }
 
-const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F, 0xD8, 0xD9};
+const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F, 0xD8, 0xD9,
+                                                         0xDC};
 
 // Predefined prefixes and their associated instructions
 const std::unordered_set<int> INSTRUCTION_PREFIX_SET = {
     0xF0,
     0xF2,
     0xF3,
+    0x3E,
 };
 
 const std::vector<int> SCALE_FACTOR = {1, 2, 4, 8};

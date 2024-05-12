@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Defines structures and functions for disassembling x86 instructions.
+ */
+
 #pragma once
 #include <sched.h>
 
@@ -12,30 +17,44 @@
 #include <unordered_set>
 #include <vector>
 
-#include "constants.h"
 #include "state.h"
 
+/**
+ * @brief The string representation for unknown instructions.
+ */
 const std::string UNKNOWN_INSTRUCTION = "UNKNOWN-INSTRUCTION";
 
+/**
+ * @struct DisAssembler
+ * @brief Represents a disassembler for x86 instructions.
+ */
 struct DisAssembler {
-    std::vector<bool>
-        isSuccessfullyDisAssembled;  // bool array indicating which
-                                     // bytes have been decoded
+    std::vector<bool> isSuccessfullyDisAssembled; /**< Array indicating which
+                                                     bytes have been decoded */
     const std::vector<unsigned char>
-        &binaryBytes;  // byte array of the object source
-    const std::unordered_map<uint64_t, std::string> &addr2symbol;
+        &binaryBytes; /**< Byte array of the object source */
+    const std::unordered_map<uint64_t, std::string>
+        &addr2symbol; /**< Mapping of addresses to symbols */
 
-    uint64_t curAddr;  // the current index to be decoded
+    uint64_t curAddr; /**< The current index to be decoded */
 
-    std::unordered_set<std::pair<uint64_t, uint64_t>> disassembledPositions;
+    std::unordered_set<std::pair<uint64_t, uint64_t>>
+        disassembledPositions; /**< Set of disassembled positions */
     std::unordered_map<std::pair<uint64_t, uint64_t>, std::string>
-        disassembledInstructions;  // mapping of index to
-                                   // disassembledInstructions
-    std::unordered_map<uint64_t, uint64_t> disassembledInstructionsLength;
-    std::vector<uint64_t> errorAddrs;  // keep track of error bytes indexes
+        disassembledInstructions; /**< Mapping of index to disassembled
+                                     instructions */
+    std::unordered_map<uint64_t, uint64_t>
+        disassembledInstructionsLength; /**< Mapping of address to instruction
+                                           length */
+    std::vector<uint64_t> errorAddrs; /**< Keeps track of error bytes indexes */
+    size_t maxInstructionStrLength =
+        0; /**< The maximum length of the instruction string */
 
-    size_t maxInstructionStrLength = 0;
-
+    /**
+     * @brief Constructor for DisAssembler.
+     * @param binaryBytes The byte array of the object source.
+     * @param addr2symbol Mapping of addresses to symbols.
+     */
     DisAssembler(const std::vector<unsigned char> &binaryBytes,
                  const std::unordered_map<uint64_t, std::string> &addr2symbol)
         : binaryBytes(binaryBytes), addr2symbol(addr2symbol), curAddr(0) {
@@ -43,8 +62,17 @@ struct DisAssembler {
             std::vector<bool>(binaryBytes.size(), false);
     }
 
+    /**
+     * @brief Disassembles instructions within the specified range.
+     * @param startAddr The starting address.
+     * @param endAddr The ending address.
+     */
     virtual void disas(uint64_t startAddr, uint64_t endAddr = -1) = 0;
 
+    /**
+     * @brief Stores the disassembled instruction.
+     * @param instruction The disassembled instruction.
+     */
     void storeInstruction(DisassembledResult instruction) {
         uint64_t nextAddr = instruction.startAddr + instruction.instructionLen;
 
@@ -86,13 +114,22 @@ struct DisAssembler {
         return;
     }
 
+    /**
+     * @brief Stores an error in decoding.
+     * @param startAddr The starting address of the error.
+     * @param instructionLength The length of the error.
+     */
     void storeError(int startAddr, int instructionLength) {
         for (int i = startAddr; i < startAddr + instructionLength; i++) {
             isSuccessfullyDisAssembled[i] = false;
-            errorAddrs.push_back(i);
+            errorAddrs.emplace_back(i);
         }
     }
 
+    /**
+     * @brief Executes a step in disassembling the instruction.
+     * @return The disassembled result.
+     */
     DisassembledResult step() {
         State state(binaryBytes, addr2symbol);
         DisassembledResult instruction = state.step(getCurAddr());
@@ -100,19 +137,25 @@ struct DisAssembler {
         return instruction;
     }
 
+    /**
+     * @brief Gets the current address being decoded.
+     * @return The current address.
+     */
     int getCurAddr() { return curAddr; }
-
-    bool hasDecoded(int idx) { return isSuccessfullyDisAssembled[idx]; }
-
-    bool hasRemainingBytes() {
-        return std::count(isSuccessfullyDisAssembled.begin(),
-                          isSuccessfullyDisAssembled.end(), false) != 0;
-    }
 };
 
+/**
+ * @struct LinearSweepDisAssembler
+ * @brief Represents a disassembler using linear sweep algorithm.
+ */
 struct LinearSweepDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
+    /**
+     * @brief Disassembles instructions using linear sweep algorithm.
+     * @param startAddr The starting address.
+     * @param endAddr The ending address.
+     */
     void disas(uint64_t startAddr, uint64_t endAddr = -1) {
         curAddr = startAddr;
         endAddr = (endAddr < 0) ? binaryBytes.size() - 1 : endAddr;
@@ -131,9 +174,19 @@ struct LinearSweepDisAssembler : public DisAssembler {
     }
 };
 
+/**
+ * @struct RecursiveDescentDisAssembler
+ * @brief Represents a disassembler using recursive descent algorithm.
+ */
 struct RecursiveDescentDisAssembler : public DisAssembler {
     using DisAssembler::DisAssembler;
 
+    /**
+     * @brief Pops an address from the stack until a valid address is found.
+     * @param stackedAddrs The stack of addresses.
+     * @param visited The visited bytes.
+     * @param isDone Flag indicating if the disassembly is done.
+     */
     void popAddr(std::stack<uint64_t> &stackedAddrs, std::vector<bool> &visited,
                  bool &isDone) {
         while (true) {
@@ -150,6 +203,11 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
         }
     }
 
+    /**
+     * @brief Disassembles instructions using recursive descent algorithm.
+     * @param startAddr The starting address.
+     * @param endAddr The ending address.
+     */
     void disas(uint64_t startAddr, uint64_t endAddr = -1) {
         bool isDone = false;
         std::stack<uint64_t> stackedAddrs;
