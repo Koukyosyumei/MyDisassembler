@@ -545,8 +545,14 @@ inline std::string to_string(Operand opu) {
             return "rm32";
         case Operand::rm64:
             return "rm64";
+        case Operand::al:
+            return "al";
+        case Operand::ax:
+            return "ax";
         case Operand::eax:
             return "eax";
+        case Operand::rax:
+            return "rax";
         case Operand::moffs8:
             return "moffs8";
         case Operand::moffs16:
