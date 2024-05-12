@@ -121,12 +121,12 @@ TEST(disas, SEVERAL_ADD) {
     disas.curAddr = 14;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(14, 18)],
-              "add  [0x1 + rax + rax * 1] eax");
+              "add  [rax + rax * 1 + 0x1] eax");
 
     disas.curAddr = 18;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(18, 25)],
-              "add  [0x00008000 + rax + rax * 1] eax");
+              "add  [rax + rax * 1 + 0x00008000] eax");
 }
 
 TEST(disas, MODRM_REG) {
@@ -311,7 +311,7 @@ TEST(disas, MODRM_SIB_RSP) {
     disas.curAddr = 3;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 7)],
-              "mov  edx [0x1 + rax + rcx * 1]");
+              "mov  edx [rax + rcx * 1 + 0x1]");
 
     disas.curAddr = 7;
     disas.step();

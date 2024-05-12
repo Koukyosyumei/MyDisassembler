@@ -11,7 +11,7 @@
 
 #include "constants.h"
 #include "error.h"
-#include "modrm.h"
+#include "bytes.h"
 #include "table.h"
 
 inline long long decodeOffset(const std::string& val) {
@@ -293,7 +293,9 @@ struct State {
             if (decoded_disp8 < 0) {
                 std::stringstream ss2;
                 ss2 << std::hex << (-1 * decoded_disp8);
-                disp8 = "-0x" + ss2.str();
+                disp8 = " - 0x" + ss2.str();
+            } else {
+                disp8 = " + " + disp8;
             }
 
             hasDisp8 = true;
@@ -321,7 +323,9 @@ struct State {
             if (decoded_disp32 < 0) {
                 std::stringstream ss;
                 ss << std::hex << (-1 * decoded_disp32);
-                disp32 = "-0x" + ss.str();
+                disp32 = " - 0x" + ss.str();
+            } else {
+                disp32 = " + " + disp32;
             }
 
             hasDisp32 = true;
