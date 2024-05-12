@@ -228,12 +228,22 @@ int main(int argc, char* argv[]) {
                               << addr2symbol.at(k.first) << postprefix + ">:";
                     if (addr2roffset.find(k.first) != addr2roffset.end()) {
                         std::cout << " #" << addr2roffset[k.first];
-                    }          
+                    }
 
                     std::cout << std::endl;
                 }
-                std::cout << " " << k.first << ": "
-                          << da->disassembledInstructions.at(k) << std::endl;
+                std::cout << " " << k.first << ": ";
+                std::cout << da->disassembledInstructions.at(k);
+                std::cout << std::string(
+                    da->maxInstructionStrLength -
+                        da->disassembledInstructions.at(k).size(),
+                    ' ');
+
+                std::cout << " ( ";
+                for (int i = k.first; i < k.second; i++) {
+                    std::cout << std::hex << (int)da->binaryBytes[i] << " ";
+                }
+                std::cout << ")" << std::endl;
             }
         }
         std::cout << "-------------------" << std::endl;

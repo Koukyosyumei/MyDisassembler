@@ -34,6 +34,8 @@ struct DisAssembler {
     std::unordered_map<uint64_t, uint64_t> disassembledInstructionsLength;
     std::vector<uint64_t> errorAddrs;  // keep track of error bytes indexes
 
+    size_t maxInstructionStrLength = 0;
+
     DisAssembler(const std::vector<unsigned char> &binaryBytes,
                  const std::unordered_map<uint64_t, std::string> &addr2symbol)
         : binaryBytes(binaryBytes), addr2symbol(addr2symbol), curAddr(0) {
@@ -43,7 +45,7 @@ struct DisAssembler {
 
     virtual void disas(uint64_t startAddr, uint64_t endAddr = -1) = 0;
 
-    void storeInstruction(DisassembledInstruction instruction) {
+    void storeInstruction(DisassembledResult instruction) {
         uint64_t nextAddr = instruction.startAddr + instruction.instructionLen;
 
         // skip if this has already been decoded
@@ -72,7 +74,10 @@ struct DisAssembler {
 
         disassembledInstructions[std::make_pair(instruction.startAddr,
                                                 nextAddr)] =
-            instruction.assemblyInstructionStr;
+            instruction.disassembledInstructionStr;
+        maxInstructionStrLength =
+            std::max(maxInstructionStrLength,
+                     instruction.disassembledInstructionStr.size());
         disassembledPositions.emplace(
             std::make_pair(instruction.startAddr, nextAddr));
         disassembledInstructionsLength[instruction.startAddr] =
@@ -88,9 +93,9 @@ struct DisAssembler {
         }
     }
 
-    DisassembledInstruction step() {
+    DisassembledResult step() {
         State state(binaryBytes, addr2symbol);
-        DisassembledInstruction instruction = state.step(getCurAddr());
+        DisassembledResult instruction = state.step(getCurAddr());
         storeInstruction(instruction);
         return instruction;
     }
@@ -114,7 +119,7 @@ struct LinearSweepDisAssembler : public DisAssembler {
 
         while (curAddr <= endAddr) {
             try {
-                DisassembledInstruction instruction = step();
+                DisassembledResult instruction = step();
                 curAddr = instruction.startAddr + instruction.instructionLen;
             } catch (const std::exception &e) {
                 std::stringstream ss;
@@ -155,7 +160,7 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
 
         while (!isDone) {
             try {
-                DisassembledInstruction instruction = step();
+                DisassembledResult instruction = step();
                 visited[curAddr] = true;
                 Mnemonic mnemonic = instruction.mnemonic;
 

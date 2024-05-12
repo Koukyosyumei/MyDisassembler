@@ -40,9 +40,9 @@ typedef struct {
     uint64_t startAddr;
     uint64_t instructionLen;
     Mnemonic mnemonic;
-    std::string assemblyInstructionStr;
+    std::string disassembledInstructionStr;
     long long nextOffset;
-} DisassembledInstruction;
+} DisassembledResult;
 
 struct State {
     const std::vector<unsigned char>& objectSource;
@@ -65,8 +65,8 @@ struct State {
 
     std::string disp8, disp32;
 
-    std::vector<std::string> assemblyInstruction;
-    std::vector<std::string> assemblyOperands;
+    std::vector<std::string> disassembledInstruction;
+    std::vector<std::string> disassembledOperands;
 
     State(const std::vector<unsigned char>& objectSource,
           const std::unordered_map<uint64_t, std::string>& addr2symbol)
@@ -96,10 +96,10 @@ struct State {
         operands.clear();
         operands.shrink_to_fit();
 
-        assemblyInstruction.clear();
-        assemblyInstruction.shrink_to_fit();
-        assemblyOperands.clear();
-        assemblyOperands.shrink_to_fit();
+        disassembledInstruction.clear();
+        disassembledInstruction.shrink_to_fit();
+        disassembledOperands.clear();
+        disassembledOperands.shrink_to_fit();
     }
 
     bool parseEndBr() {
@@ -108,7 +108,7 @@ struct State {
                 objectSource[curAddr + 1] == 0x0F &&
                 objectSource[curAddr + 2] == 0x1E &&
                 objectSource[curAddr + 3] == 0xFA) {
-                assemblyInstruction.push_back(to_string(Mnemonic::ENDBR64));
+                disassembledInstruction.push_back(to_string(Mnemonic::ENDBR64));
                 opEnc = OpEnc::NP;
                 instructionLen += 4;
                 curAddr += 4;
@@ -117,7 +117,7 @@ struct State {
                        objectSource[curAddr + 1] == 0x0F &&
                        objectSource[curAddr + 2] == 0x1E &&
                        objectSource[curAddr + 3] == 0xFB) {
-                assemblyInstruction.push_back(to_string(Mnemonic::ENDBR32));
+                disassembledInstruction.push_back(to_string(Mnemonic::ENDBR32));
                 opEnc = OpEnc::NP;
                 instructionLen += 4;
                 curAddr += 4;
@@ -143,7 +143,7 @@ struct State {
             hasInstructionPrefix = true;
             instructionPrefixByte = objectSource[curAddr];
             // prefixInstructionStr = PREFIX_INSTRUCTIONS_SET.at(startByte);
-            // assemblyInstruction.push_back(prefixInstructionStr);
+            // disassembledInstruction.push_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
             curAddr += 1;
@@ -229,19 +229,19 @@ struct State {
 
         if (hasInstructionPrefix) {
             if (instructionPrefixByte == 0xF0) {
-                assemblyInstruction.push_back("lock");
+                disassembledInstruction.push_back("lock");
             } else if (instructionPrefixByte == 0xF2) {
                 if (isControlFlowInstruction(mnemonic)) {
-                    assemblyInstruction.push_back("bnd");
+                    disassembledInstruction.push_back("bnd");
                 } else {
-                    assemblyInstruction.push_back("repne");
+                    disassembledInstruction.push_back("repne");
                 }
             } else if (instructionPrefixByte == 0xF3) {
-                assemblyInstruction.push_back("rep");
+                disassembledInstruction.push_back("rep");
             }
         }
 
-        assemblyInstruction.push_back(to_string(mnemonic));
+        disassembledInstruction.push_back(to_string(mnemonic));
 
         if (OPERAND_LOOKUP.find(std::make_tuple(
                 prefix, mnemonic, opcodeByte)) != OPERAND_LOOKUP.end()) {
@@ -344,7 +344,7 @@ struct State {
     }
 
     // startAddr, targetLen, mnemonic, assemblyStr, nextOffset
-    DisassembledInstruction step(uint64_t startAddr) {
+    DisassembledResult step(uint64_t startAddr) {
         // ############### Initialize ##############################
         init();
         curAddr = startAddr;
@@ -432,21 +432,21 @@ struct State {
                 decodedTranslatedValue = ss.str();
             }
 
-            assemblyOperands.push_back(decodedTranslatedValue);
+            disassembledOperands.push_back(decodedTranslatedValue);
         }
 
         std::string ao = "";
-        for (std::string& a : assemblyOperands) {
+        for (std::string& a : disassembledOperands) {
             ao += " " + a;
         }
-        assemblyInstruction.push_back(ao);
+        disassembledInstruction.push_back(ao);
 
         long long nextOffset = 0;
-        std::string assemblyInstructionStr = "";
+        std::string disassembledInstructionStr = "";
 
         if (isControlFlowInstruction(mnemonic) && operands.size() == 1 &&
             isIMM(operands[0])) {
-            nextOffset = decodeOffset(assemblyOperands[0]);
+            nextOffset = decodeOffset(disassembledOperands[0]);
             uint64_t labelAddr =
                 (uint64_t)(((long long)startAddr) +
                            ((long long)instructionLen) + nextOffset);
@@ -456,17 +456,17 @@ struct State {
             if (addr2symbol.find(labelAddr) != addr2symbol.end()) {
                 labelName += " <" + addr2symbol.at(labelAddr) + ">";
             }
-            assemblyInstructionStr =
+            disassembledInstructionStr =
                 to_string(mnemonic) + " " + labelName +
                 " ; relative offset = " + std::to_string(nextOffset);
         } else {
-            assemblyInstructionStr = assemblyInstruction[0];
-            for (int i = 1; i < assemblyInstruction.size(); i++) {
-                assemblyInstructionStr += " " + assemblyInstruction[i];
+            disassembledInstructionStr = disassembledInstruction[0];
+            for (int i = 1; i < disassembledInstruction.size(); i++) {
+                disassembledInstructionStr += " " + disassembledInstruction[i];
             }
         }
 
-        return {startAddr, instructionLen, mnemonic, assemblyInstructionStr,
+        return {startAddr, instructionLen, mnemonic, disassembledInstructionStr,
                 nextOffset};
     }
 };
