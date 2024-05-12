@@ -145,9 +145,9 @@ struct State {
     }
 
     /**
-     * @brief Parses instruction prefixes.
+     * @brief Parses the operand-size prefixe.
      */
-    void parsePrefix() {
+    void parseOperandSizePrefix() {
         if (objectSource[curAddr] == 0x66) {
             prefix = Prefix::P66;
             instructionLen += 1;
@@ -170,15 +170,13 @@ struct State {
     }
 
     /**
-     * @brief Parses instruction prefixes like the operand size override.
+     * @brief Parses instruction prefixes.
      */
     void parsePrefixInstructions() {
         if (INSTRUCTION_PREFIX_SET.find(objectSource[curAddr]) !=
             INSTRUCTION_PREFIX_SET.end()) {
             hasInstructionPrefix = true;
             instructionPrefixByte = objectSource[curAddr];
-            // prefixInstructionStr = PREFIX_INSTRUCTIONS_SET.at(startByte);
-            // disassembledInstruction.emplace_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
             curAddr += 1;
@@ -410,7 +408,7 @@ struct State {
         if (!parseEndBr()) {
             parsePrefixInstructions();
             parseSegmentOverridePrefix();
-            parsePrefix();
+            parseOperandSizePrefix();
             parseREX();
             parseOpecode();
             parseModRM();
