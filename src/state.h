@@ -19,17 +19,17 @@ inline long long decodeOffset(const std::string& val) {
 
     offset = stoul(val, nullptr, 16);
 
-    if (val.size() == 8 + 2) {
-        if (offset > 0x7FFFFFFF) {
-            offset -= 0x100000000;
+    if (val.size() <= 2 + 2) {
+        if (offset > 0x7F) {
+            offset -= 0x100;
         }
-    } else if (val.size() == 4 + 2) {
+    } else if (val.size() <= 4 + 2) {
         if (offset > 0x7FFF) {
             offset -= 0x10000;
         }
-    } else if (val.size() == 2 + 2) {
-        if (offset > 0x7F) {
-            offset -= 0x100;
+    } else if (val.size() <= 8 + 2) {
+        if (offset > 0x7FFFFFFF) {
+            offset -= 0x100000000;
         }
     }
 
@@ -46,11 +46,11 @@ typedef struct {
 
 struct State {
     const std::vector<unsigned char>& objectSource;
-    const std::unordered_map<long long, std::string>& addr2symbol;
+    const std::unordered_map<uint64_t, std::string>& addr2symbol;
 
-    bool hasPrefixInstruction, hasREX, hasSIB, hasDisp8, hasDisp32;
+    bool hasInstructionPrefix, hasREX, hasSIB, hasDisp8, hasDisp32;
     uint64_t curAddr, instructionLen, prefixOffset;
-    int opcodeByte, modrmByte, sibByte;
+    int instructionPrefixByte, opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
     Mnemonic mnemonic;
@@ -69,10 +69,10 @@ struct State {
     std::vector<std::string> assemblyOperands;
 
     State(const std::vector<unsigned char>& objectSource,
-          const std::unordered_map<long long, std::string>& addr2symbol)
+          const std::unordered_map<uint64_t, std::string>& addr2symbol)
         : objectSource(objectSource),
           addr2symbol(addr2symbol),
-          hasPrefixInstruction(false),
+          hasInstructionPrefix(false),
           hasREX(false),
           hasSIB(false),
           hasDisp8(false),
@@ -83,7 +83,7 @@ struct State {
           prefix(Prefix::NONE) {}
 
     void init() {
-        hasPrefixInstruction = hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
+        hasInstructionPrefix = hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
         curAddr = 0;
         instructionLen = 0;
         prefixOffset = 0;
@@ -138,12 +138,12 @@ struct State {
     }
 
     void parsePrefixInstructions() {
-        int startByte = objectSource[curAddr];
-        if (PREFIX_INSTRUCTIONS_MAP.find(startByte) !=
-            PREFIX_INSTRUCTIONS_MAP.end()) {
-            hasPrefixInstruction = true;
-            prefixInstructionStr = PREFIX_INSTRUCTIONS_MAP.at(startByte);
-            assemblyInstruction.push_back(prefixInstructionStr);
+        if (INSTRUCTION_PREFIX_SET.find(objectSource[curAddr]) !=
+            INSTRUCTION_PREFIX_SET.end()) {
+            hasInstructionPrefix = true;
+            instructionPrefixByte = objectSource[curAddr];
+            // prefixInstructionStr = PREFIX_INSTRUCTIONS_SET.at(startByte);
+            // assemblyInstruction.push_back(prefixInstructionStr);
             prefixOffset = 1;
             instructionLen += 1;
             curAddr += 1;
@@ -217,7 +217,22 @@ struct State {
             mnemonic = reg2mnem.at(-1);
         }
 
+        if (hasInstructionPrefix) {
+            if (instructionPrefixByte == 0xF0) {
+                assemblyInstruction.push_back("lock");
+            } else if (instructionPrefixByte == 0xF2) {
+                if (isControlFlowInstruction(mnemonic)) {
+                    assemblyInstruction.push_back("bnd");
+                } else {
+                    assemblyInstruction.push_back("repne");
+                }
+            } else if (instructionPrefixByte == 0xF3) {
+                assemblyInstruction.push_back("rep");
+            }
+        }
+
         assemblyInstruction.push_back(to_string(mnemonic));
+
         if (OPERAND_LOOKUP.find(std::make_tuple(
                 prefix, mnemonic, opcodeByte)) != OPERAND_LOOKUP.end()) {
             std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>
@@ -269,7 +284,18 @@ struct State {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            disp8 = std::to_string(objectSource[curAddr]);
+            
+            std::stringstream ss1;
+            ss1 << std::hex << (int)objectSource[curAddr];
+            disp8 = "0x" + ss1.str();
+
+            long long decoded_disp8 = decodeOffset(disp8);
+            if (decoded_disp8 < 0) {
+                std::stringstream ss2;
+                ss2 << std::hex << (-1 * decoded_disp8);
+                disp8 = "-0x" + ss2.str();
+            }
+
             hasDisp8 = true;
             instructionLen += 1;
             curAddr += 1;
@@ -290,6 +316,13 @@ struct State {
                    << static_cast<int>(x);
             }
             disp32 = ss.str();
+
+            long long decoded_disp32 = decodeOffset(disp32);
+            if (decoded_disp32 < 0) {
+                std::stringstream ss;
+                ss << std::hex << (-1 * decoded_disp32);
+                disp32 = "-0x" + ss.str();
+            }
 
             hasDisp32 = true;
             instructionLen += 4;
@@ -394,15 +427,14 @@ struct State {
         if (isControlFlowInstruction(mnemonic) && operands.size() == 1 &&
             isIMM(operands[0])) {
             nextOffset = decodeOffset(assemblyOperands[0]);
-            long long labelAddr = ((long long)startAddr) +
-                                  ((long long)instructionLen) + nextOffset;
-            std::string labelName;
+            uint64_t labelAddr =
+                (uint64_t)(((long long)startAddr) +
+                           ((long long)instructionLen) + nextOffset);
+            std::stringstream ss;
+            ss << std::hex << labelAddr;
+            std::string labelName = ss.str();
             if (addr2symbol.find(labelAddr) != addr2symbol.end()) {
-                labelName = "<" + addr2symbol.at(labelAddr) + ">";
-            } else {
-                std::stringstream ss;
-                ss << std::hex << labelAddr;
-                labelName = ss.str();
+                labelName += " <" + addr2symbol.at(labelAddr) + ">";
             }
             assemblyInstructionStr =
                 to_string(mnemonic) + " " + labelName +

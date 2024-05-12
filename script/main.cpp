@@ -58,8 +58,10 @@ int main(int argc, char* argv[]) {
     ELF64_FILE_HEADER header;
     ELF64_SECTION_HEADER shstr;
     std::unordered_map<std::string, ELF64_SECTION_HEADER> section_headers;
-    std::unordered_map<long long, std::string> addr2symbol;
-    std::unordered_map<long long, std::string> pltIdx2symbol;
+    std::unordered_map<uint64_t, std::string> addr2symbol;
+    std::unordered_map<int, std::string> pltIdx2symbol;
+    std::unordered_map<uint64_t, uint64_t> addr2roffset;
+    std::unordered_map<int, uint64_t> pltIdx2roffset;
 
     load(binaryPath, binaryBytes);
 
@@ -100,8 +102,8 @@ int main(int argc, char* argv[]) {
 
             if (sym_name.size() > 0) {
                 addr2symbol.insert(std::make_pair(
-                    (long long)section_headers[".text"].sh_offset +
-                        (long long)sym.st_value,
+                    (uint64_t)((long long)section_headers[".text"].sh_offset +
+                               (long long)sym.st_value),
                     sym_name));
             }
         }
@@ -130,16 +132,21 @@ int main(int argc, char* argv[]) {
                 (int)section_headers[".dynstr"].sh_offset + (int)sym.st_name);
             if (sym_name.size() > 0) {
                 pltIdx2symbol.insert(std::make_pair(sid, sym_name));
+                pltIdx2roffset.insert(std::make_pair(sid, rela.r_offset));
             }
         }
     }
 
     if (section_headers.find(".plt.sec") != section_headers.end()) {
-        for (auto kv : pltIdx2symbol) {
+        for (const std::pair<int, std::string>& kv : pltIdx2symbol) {
             addr2symbol.insert(
                 std::make_pair(section_headers[".plt.sec"].sh_offset +
                                    kv.first * PLT_SEC_ENTRY_SIZE,
                                kv.second));
+            addr2roffset.insert(
+                std::make_pair(section_headers[".plt.sec"].sh_offset +
+                                   kv.first * PLT_SEC_ENTRY_SIZE,
+                               pltIdx2roffset[kv.first]));
         }
     }
 
@@ -147,13 +154,6 @@ int main(int argc, char* argv[]) {
     if (section_headers.find(".text") != section_headers.end()) {
         std::cout << "sh_offset: " << (int)section_headers[".text"].sh_offset
                   << std::endl;
-
-        /*
-        std::vector<unsigned char> text_section_binaryBytes(
-            binaryBytes.begin() + (int)section_headers[".text"].sh_offset,
-            binaryBytes.begin() + (int)section_headers[".text"].sh_offset +
-                (int)section_headers[".text"].sh_size);
-        */
 
         DisAssembler* da;
 
@@ -183,6 +183,7 @@ int main(int argc, char* argv[]) {
         bool enter_plt_got = false;
         bool enter_plt_sec = false;
         bool enter_text = false;
+        std::string postprefix = "";
 
         for (const std::pair<size_t, size_t>& k : disassembledPositionsVec) {
             if (k.first >= section_headers[".plt.got"].sh_offset &&
@@ -192,8 +193,7 @@ int main(int argc, char* argv[]) {
                     std::cout << std::endl
                               << "section: .plt.got ----" << std::endl;
                     enter_plt_got = true;
-                    enter_plt_sec = false;
-                    enter_text = false;
+                    postprefix = "@plt";
                 }
             }
 
@@ -204,8 +204,7 @@ int main(int argc, char* argv[]) {
                     std::cout << std::endl
                               << "section: .plt.sec ----" << std::endl;
                     enter_plt_sec = true;
-                    enter_plt_got = false;
-                    enter_text = false;
+                    postprefix = "@plt";
                 }
             }
 
@@ -214,27 +213,24 @@ int main(int argc, char* argv[]) {
                                    section_headers[".text"].sh_size) {
                 if (!enter_text) {
                     std::cout << std::endl
-                              << "section: .text ----" << std::endl;
+                              << "section: .text ----" << std::endl
+                              << std::endl;
                     enter_text = true;
-                    enter_plt_sec = false;
-                    enter_plt_got = false;
+                    postprefix = "";
                 }
             }
 
             if (da->disassembledInstructions.find(k) !=
                 da->disassembledInstructions.end()) {
-                if (addr2symbol.find((long long)k.first) != addr2symbol.end()) {
-                    if (enter_text) {
-                        std::cout << std::endl
-                                  << std::hex << k.first << " <"
-                                  << addr2symbol.at(k.first) << ">"
-                                  << std::endl;
-                    } else {
-                        std::cout << std::endl
-                                  << std::hex << k.first << " <"
-                                  << addr2symbol.at(k.first) << "@plt>"
-                                  << std::endl;
-                    }
+                if (addr2symbol.find(k.first) != addr2symbol.end()) {
+                    std::cout << std::endl
+                              << std::hex << k.first << " <"
+                              << addr2symbol.at(k.first) << postprefix + ">:";
+                    if (addr2roffset.find(k.first) != addr2roffset.end()) {
+                        std::cout << " #" << addr2roffset[k.first];
+                    }          
+
+                    std::cout << std::endl;
                 }
                 std::cout << " " << k.first << ": "
                           << da->disassembledInstructions.at(k) << std::endl;

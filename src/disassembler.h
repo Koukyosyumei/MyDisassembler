@@ -23,7 +23,7 @@ struct DisAssembler {
                                      // bytes have been decoded
     const std::vector<unsigned char>
         &binaryBytes;  // byte array of the object source
-    const std::unordered_map<long long, std::string> &addr2symbol;
+    const std::unordered_map<uint64_t, std::string> &addr2symbol;
 
     uint64_t curAddr;  // the current index to be decoded
 
@@ -35,7 +35,7 @@ struct DisAssembler {
     std::vector<uint64_t> errorAddrs;  // keep track of error bytes indexes
 
     DisAssembler(const std::vector<unsigned char> &binaryBytes,
-                 const std::unordered_map<long long, std::string> &addr2symbol)
+                 const std::unordered_map<uint64_t, std::string> &addr2symbol)
         : binaryBytes(binaryBytes), addr2symbol(addr2symbol), curAddr(0) {
         isSuccessfullyDisAssembled =
             std::vector<bool>(binaryBytes.size(), false);

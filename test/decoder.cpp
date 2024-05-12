@@ -11,7 +11,7 @@
 
 #include "disassembler.h"
 
-const std::unordered_map<long long, std::string> addr2symbol;
+const std::unordered_map<uint64_t, std::string> addr2symbol;
 
 TEST(disas, ONE_BYTE) {
     std::vector<unsigned char> obj = {0x90, 0xC3};
@@ -121,7 +121,7 @@ TEST(disas, SEVERAL_ADD) {
     disas.curAddr = 14;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(14, 18)],
-              "add  [1 + rax + rax * 1] eax");
+              "add  [0x1 + rax + rax * 1] eax");
 
     disas.curAddr = 18;
     disas.step();
@@ -257,7 +257,7 @@ TEST(disas, MODRM_MOD_DISP) {
     disas.curAddr = 2;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(2, 5)],
-              "mov  ecx [rax + 1]");
+              "mov  ecx [rax + 0x1]");
 
     disas.curAddr = 5;
     disas.step();
@@ -276,12 +276,12 @@ TEST(disas, MODRM_MOD00_RM101) {
     disas.curAddr = 0;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(0, 3)],
-              "mov  ecx [rbp + 0]");
+              "mov  ecx [rbp + 0x0]");
 
     disas.curAddr = 3;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 6)],
-              "mov  ecx [rbp + 1]");
+              "mov  ecx [rbp + 0x1]");
 
     disas.curAddr = 6;
     disas.step();
@@ -311,7 +311,7 @@ TEST(disas, MODRM_SIB_RSP) {
     disas.curAddr = 3;
     disas.step();
     ASSERT_EQ(disas.disassembledInstructions[std::make_pair(3, 7)],
-              "mov  edx [1 + rax + rcx * 1]");
+              "mov  edx [0x1 + rax + rcx * 1]");
 
     disas.curAddr = 7;
     disas.step();
