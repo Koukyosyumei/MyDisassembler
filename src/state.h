@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Defines structures and functions for decoding x86 instructions.
+ */
+
 #pragma once
 #include <algorithm>
 #include <cstdint>
@@ -14,6 +19,12 @@
 #include "error.h"
 #include "table.h"
 
+/**
+ * @brief Decodes the given hexadecimal offset string into a signed long long
+ * integer.
+ * @param val The hexadecimal offset string.
+ * @return The decoded offset.
+ */
 inline long long decodeOffset(const std::string& val) {
     long long offset;
 
@@ -36,14 +47,23 @@ inline long long decodeOffset(const std::string& val) {
     return offset;
 }
 
+/**
+ * @struct DisassembledResult
+ * @brief Represents the result of disassembling an instruction.
+ */
 typedef struct {
-    uint64_t startAddr;
-    uint64_t instructionLen;
-    Mnemonic mnemonic;
-    std::string disassembledInstructionStr;
-    long long nextOffset;
+    uint64_t startAddr;      /**< The starting address of the instruction */
+    uint64_t instructionLen; /**< The length of the instruction */
+    Mnemonic mnemonic;       /**< The mnemonic of the instruction */
+    std::string
+        disassembledInstructionStr; /**< The disassembled instruction string */
+    long long nextOffset;           /**< The offset to the next instruction */
 } DisassembledResult;
 
+/**
+ * @struct State
+ * @brief Represents the state of the disassembler.
+ */
 struct State {
     const std::vector<unsigned char>& objectSource;
     const std::unordered_map<uint64_t, std::string>& addr2symbol;
@@ -68,6 +88,11 @@ struct State {
     std::vector<std::string> disassembledInstruction;
     std::vector<std::string> disassembledOperands;
 
+    /**
+     * @brief Constructor for State.
+     * @param objectSource The object code to disassemble.
+     * @param addr2symbol Mapping of addresses to symbols.
+     */
     State(const std::vector<unsigned char>& objectSource,
           const std::unordered_map<uint64_t, std::string>& addr2symbol)
         : objectSource(objectSource),
@@ -82,26 +107,10 @@ struct State {
           prefixOffset(0),
           prefix(Prefix::NONE) {}
 
-    void init() {
-        hasInstructionPrefix = hasREX = hasSIB = hasDisp8 = hasDisp32 = false;
-        curAddr = 0;
-        instructionLen = 0;
-        prefixOffset = 0;
-        prefix = Prefix::NONE;
-
-        opcodeByte = modrmByte = sibByte = -1;
-
-        remOps.clear();
-        remOps.shrink_to_fit();
-        operands.clear();
-        operands.shrink_to_fit();
-
-        disassembledInstruction.clear();
-        disassembledInstruction.shrink_to_fit();
-        disassembledOperands.clear();
-        disassembledOperands.shrink_to_fit();
-    }
-
+    /**
+     * @brief Parses the endbr instruction.
+     * @return True if an endbr instruction is parsed, false otherwise.
+     */
     bool parseEndBr() {
         if (curAddr + 3 < objectSource.size()) {
             if (objectSource[curAddr] == 0xF3 &&
@@ -129,6 +138,9 @@ struct State {
         return false;
     }
 
+    /**
+     * @brief Parses instruction prefixes.
+     */
     void parsePrefix() {
         if (objectSource[curAddr] == 0x66) {
             prefix = Prefix::P66;
@@ -137,6 +149,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses instruction prefixes like the operand size override.
+     */
     void parsePrefixInstructions() {
         if (INSTRUCTION_PREFIX_SET.find(objectSource[curAddr]) !=
             INSTRUCTION_PREFIX_SET.end()) {
@@ -150,6 +165,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses the REX prefix.
+     */
     void parseREX() {
         // The format of REX prefix is 0100|W|R|X|B
         if ((objectSource[curAddr] >> 4) == 4) {
@@ -166,6 +184,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses the opcode byte.
+     */
     void parseOpecode() {
         // eat opecode
         opcodeByte = objectSource[curAddr];
@@ -261,6 +282,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses the ModRM byte.
+     */
     void parseModRM() {
         if (hasModrm(opEnc)) {
             if (modrmByte < 0) {
@@ -273,6 +297,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses the SIB byte.
+     */
     void parseSIB() {
         if (hasModrm(opEnc) && modrm.hasSib) {
             // eat the sib (1 byte)
@@ -289,6 +316,9 @@ struct State {
         }
     }
 
+    /**
+     * @brief Parses the address offset.
+     */
     void parseAddressOffset() {
         if ((hasModrm(opEnc) && modrm.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
@@ -343,10 +373,13 @@ struct State {
         }
     }
 
-    // startAddr, targetLen, mnemonic, assemblyStr, nextOffset
+    /**
+     * @brief Executes a step in disassembling the instruction.
+     * @param startAddr The starting address of the instruction.
+     * @return The disassembled result.
+     */
     DisassembledResult step(uint64_t startAddr) {
         // ############### Initialize ##############################
-        init();
         curAddr = startAddr;
 
         // the general format of the x86-64 operations

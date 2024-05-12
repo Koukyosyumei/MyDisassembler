@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Defines structures for decoding x86 ModRM and SIB bytes.
+ */
+
 #pragma once
 #include <iostream>
 #include <unordered_map>
@@ -6,13 +11,25 @@
 #include "constants.h"
 #include "utils.h"
 
+/**
+ * @struct REX
+ * @brief Represents the REX prefix byte in x86 instruction encoding.
+ */
 struct REX {
     bool rexB;
     bool rexX;
     bool rexR;
     bool rexW;
 
+    /**
+     * @brief Default constructor for REX.
+     */
     REX() : rexB(false), rexX(false), rexR(false), rexW(false) {}
+
+    /**
+     * @brief Constructor for REX with byte parameter.
+     * @param rexByte The REX prefix byte.
+     */
     REX(unsigned char rexByte) {
         rexB = (rexByte & 0x1) == 0x1;
         rexX = (rexByte & 0x2) == 0x2;
@@ -21,6 +38,10 @@ struct REX {
     }
 };
 
+/**
+ * @struct ModRM
+ * @brief Represents the ModRM byte in x86 instruction encoding.
+ */
 struct ModRM {
     REX rex;
     int modByte;
@@ -34,6 +55,9 @@ struct ModRM {
     bool hasDisp32;
     bool hasSib;
 
+    /**
+     * @brief Default constructor for ModRM.
+     */
     ModRM()
         : modByte(0),
           regByte(0),
@@ -41,6 +65,12 @@ struct ModRM {
           hasDisp8(false),
           hasDisp32(false),
           hasSib(false) {}
+
+    /**
+     * @brief Constructor for ModRM with byte parameter.
+     * @param modrmByte The ModRM byte.
+     * @param rex The associated REX prefix.
+     */
     ModRM(unsigned char modrmByte, REX rex) : rex(rex) {
         rmByte = modrmByte & 0x7;
         regByte = (modrmByte >> 3) & 0x7;
@@ -79,6 +109,11 @@ struct ModRM {
         }
     }
 
+    /**
+     * @brief Gets the register name based on the operand type.
+     * @param operand The operand type.
+     * @return The register name.
+     */
     std::string getReg(Operand operand) {
         if (operand == Operand::xmm) {
             return "xmm" + std::to_string(regByte + (rex.rexR ? 8 : 0));
@@ -87,6 +122,13 @@ struct ModRM {
         }
     }
 
+    /**
+     * @brief Generates the addressing mode string.
+     * @param operand The operand type.
+     * @param disp8 The 8-bit displacement.
+     * @param disp32 The 32-bit displacement.
+     * @return The addressing mode string.
+     */
     std::string getAddrMode(Operand operand, std::string disp8,
                             std::string disp32) {
         std::string addrBaseReg;
@@ -139,6 +181,11 @@ struct ModRM {
     }
 };
 
+/**
+ * @struct SIB
+ * @brief Represents the SIB (Scale-Index-Base) byte in x86 instruction
+ * encoding.
+ */
 struct SIB {
     unsigned char scaleByte;
     unsigned char indexByte;
@@ -147,13 +194,22 @@ struct SIB {
     REX rex;
 
     std::string address;
-
     std::string addrBaseReg, indexReg;
     int scale;
     bool hasDisp8;
     bool hasDisp32;
 
+    /**
+     * @brief Default constructor for SIB.
+     */
     SIB() : hasDisp8(false), hasDisp32(false) {}
+
+    /**
+     * @brief Constructor for SIB with byte parameters.
+     * @param sibByte The SIB byte.
+     * @param modByte The associated mod field from ModRM.
+     * @param rex The associated REX prefix.
+     */
     SIB(unsigned char sibByte, unsigned char modByte, REX rex)
         : modByte(modByte), rex(rex) {
         scaleByte = (sibByte >> 6) & 0x3;
@@ -164,6 +220,13 @@ struct SIB {
         hasDisp32 = baseByte == 5 && modByte != 1;
     }
 
+    /**
+     * @brief Generates the address string.
+     * @param operand The operand type.
+     * @param disp8 The 8-bit displacement.
+     * @param disp32 The 32-bit displacement.
+     * @return The address string.
+     */
     std::string getAddr(Operand operand, std::string disp8,
                         std::string disp32) {
         std::string offset = "";
