@@ -34,7 +34,8 @@ enum class Operand {
     moffs32,
     moffs64,
     cl,
-    dx
+    dx,
+    sti,
 };
 
 inline bool isA_REG(Operand operand) {
@@ -121,6 +122,8 @@ inline std::string to_string(Prefix prefix) {
 }
 
 enum class Mnemonic {
+    FXCH,
+    FADD,
     ENDBR64,
     ENDBR32,
     SHLD,
@@ -232,6 +235,10 @@ enum class Mnemonic {
 
 inline std::string to_string(Mnemonic mnemonic) {
     switch (mnemonic) {
+        case Mnemonic::FADD:
+            return "fadd";
+        case Mnemonic::FXCH:
+            return "fxch";
         case Mnemonic::ENDBR64:
             return "endbr64";
         case Mnemonic::ENDBR32:
@@ -632,7 +639,7 @@ inline std::string to_string(OpEnc openc) {
     }
 }
 
-const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F};
+const std::unordered_set<int> TWO_BYTES_OPCODE_PREFIX = {0x0F, 0xD8, 0xD9};
 
 // Predefined prefixes and their associated instructions
 const std::unordered_set<int> INSTRUCTION_PREFIX_SET = {

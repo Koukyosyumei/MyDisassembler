@@ -9,9 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include "bytes.h"
 #include "constants.h"
 #include "error.h"
-#include "bytes.h"
 #include "table.h"
 
 inline long long decodeOffset(const std::string& val) {
@@ -172,9 +172,19 @@ struct State {
         instructionLen += 1;
         curAddr += 1;
 
-        if (TWO_BYTES_OPCODE_PREFIX.find(opcodeByte) !=
-            TWO_BYTES_OPCODE_PREFIX.end()) {
-            opcodeByte = (opcodeByte << 8) + objectSource[curAddr];
+        int pottentialOpCodeByte = (opcodeByte << 8) + objectSource[curAddr];
+
+        if ((TWO_BYTES_OPCODE_PREFIX.find(opcodeByte) !=
+             TWO_BYTES_OPCODE_PREFIX.end()) &&
+            ((OP_LOOKUP.find(std::make_pair(prefix, pottentialOpCodeByte)) !=
+              OP_LOOKUP.end()) ||
+             (prefix == Prefix::REXW &&
+              OP_LOOKUP.find(std::make_pair(
+                  Prefix::REX, pottentialOpCodeByte)) != OP_LOOKUP.end()) ||
+             (prefix == Prefix::REX &&
+              OP_LOOKUP.find(std::make_pair(
+                  Prefix::NONE, pottentialOpCodeByte)) != OP_LOOKUP.end()))) {
+            opcodeByte = pottentialOpCodeByte;
             instructionLen += 1;
             curAddr += 1;
         }
@@ -284,7 +294,6 @@ struct State {
             (hasModrm(opEnc) && modrm.hasSib && sib.hasDisp8) ||
             (hasModrm(opEnc) && modrm.hasSib && modrm.modByte == 1 &&
              sib.baseByte == 5)) {
-            
             std::stringstream ss1;
             ss1 << std::hex << (int)objectSource[curAddr];
             disp8 = "0x" + ss1.str();
@@ -361,9 +370,12 @@ struct State {
             if (isA_REG(operand) || operand == Operand::cl ||
                 operand == Operand::dx) {
                 decodedTranslatedValue = to_string(operand);
-            } else if (isRM(operand) || isREG(operand)) {
+            } else if (operand == Operand::sti) {
+                decodedTranslatedValue = "st(" + remOps[0] + ")";
+            } else if (isRM(operand) || isREG(operand) ||
+                       operand == Operand::m) {
                 if (hasModrm(opEnc)) {
-                    if (isRM(operand)) {
+                    if (isRM(operand) || operand == Operand::m) {
                         decodedTranslatedValue =
                             modrm.getAddrMode(operand, disp8, disp32);
                     } else {
@@ -387,7 +399,8 @@ struct State {
                     }
                 }
 
-                if (isRM(operand) && hasModrm(opEnc) && modrm.hasSib) {
+                if ((isRM(operand) || operand == Operand::m) &&
+                    hasModrm(opEnc) && modrm.hasSib) {
                     decodedTranslatedValue =
                         sib.getAddr(operand, disp8, disp32);
                 }
@@ -395,7 +408,8 @@ struct State {
                 int immSize = 0;
                 if (operand == Operand::imm64 || operand == Operand::ymm) {
                     immSize = 8;
-                } else if (operand == Operand::imm32 || operand == Operand::xmm) {
+                } else if (operand == Operand::imm32 ||
+                           operand == Operand::xmm) {
                     immSize = 4;
                 } else if (operand == Operand::imm16) {
                     immSize = 2;
