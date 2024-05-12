@@ -38,12 +38,12 @@ section: .text ----
  4c: jmp 40 <_start> ; relative offset = -14  ( eb f2 )
 
 4e <zero_label>:
- 4e: push  esp                                ( 54 )
+ 4e: push  rsp                                ( 54 )
  4f: xor  eax eax                             ( 31 c0 )
  51: ret                                      ( c3 )
 
 52 <end_label>:
- 52: push  edi                                ( 57 )
+ 52: push  rdi                                ( 57 )
  53: xor  ecx ecx                             ( 31 c9 )
  55: ret                                      ( c3 )
 -------------------

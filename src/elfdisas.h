@@ -11,14 +11,11 @@
 #include "disassembler.h"
 #include "header.h"
 
-const std::vector<std::string> PRINTABLE_SECTIONS = {".plt.got", ".plt.sec",
-                                                     ".text", ".init", ".fini"};
+const std::vector<std::string> PRINTABLE_SECTIONS = {
+    ".plt", ".plt.got", ".plt.sec", ".text", ".init", ".fini"};
 const std::unordered_map<std::string, std::string> SECTION_LABEL_POSTFIX = {
-    {".plt.got", "@plt"},
-    {".plt.sec", "@plt"},
-    {".text", ""},
-    {".init", ""},
-    {".fini", ""}};
+    {".plt", ""},  {".plt.got", "@plt"}, {".plt.sec", "@plt"},
+    {".text", ""}, {".init", ""},        {".fini", ""}};
 
 inline void load(const std::string& binaryPath,
                  std::vector<unsigned char>& binaryBytes) {

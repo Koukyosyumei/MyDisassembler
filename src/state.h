@@ -435,18 +435,16 @@ struct State {
                         decodedTranslatedValue = modrm.getReg(operand);
                     }
                 } else {
+                    int regIdx = (hasREX && rex.rexB) ? std::stoi(remOps[0]) + 8
+                                                      : std::stoi(remOps[0]);
                     if (is8Bit(operand)) {
-                        decodedTranslatedValue =
-                            REGISTERS8.at(std::stoi(remOps[0]));
+                        decodedTranslatedValue = REGISTERS8.at(regIdx);
                     } else if (is16Bit(operand)) {
-                        decodedTranslatedValue =
-                            REGISTERS16.at(std::stoi(remOps[0]));
+                        decodedTranslatedValue = REGISTERS16.at(regIdx);
                     } else if (is32Bit(operand)) {
-                        decodedTranslatedValue =
-                            REGISTERS32.at(std::stoi(remOps[0]));
+                        decodedTranslatedValue = REGISTERS32.at(regIdx);
                     } else if (is64Bit(operand)) {
-                        decodedTranslatedValue =
-                            REGISTERS64.at(std::stoi(remOps[0]));
+                        decodedTranslatedValue = REGISTERS64.at(regIdx);
                     } else if (operand == Operand::xm128) {
                         decodedTranslatedValue = "xmm" + remOps[0];
                     }

@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
 
     ELFDisAssembler eda(binaryPath, strategy);
 
+    eda.disas(".plt");
     eda.disas(".plt.got");
     eda.disas(".plt.sec");
     eda.disas(".text");
