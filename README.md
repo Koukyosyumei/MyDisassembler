@@ -1,18 +1,33 @@
 # MyDisassembler
 
-This project implements the disassembler for X86-64 from scratch in C++. 
+Welcome to MyDisassembler, a project designed to help learners understand X86-64 machine codes, assembly language, ELF format, and disassembly strategies. With this tool, we can explore the intricacies of low-level programming and gain insights into how binaries are structured and executed.
 
 ## Install
 
+To get started with MyDisassembler, follow these simple steps:
+
+- Clone the Repository:
+
 ```bash
+git clone https://github.com:Koukyosyumei/MyDisassembler.git
+```
+
+- Build the Project:
+
+```bash
+cd MyDisassembler
 ./script/build.sh
 ```
 
 ## Usage
 
-```bash
-> ./build/script/mydisas example/jmp.o
+Once installed, you can use MyDisassembler to disassemble binary files and delve into their assembly code. Here's how you can use it:
 
+```bash
+./build/script/mydisas example/jmp.o
+```
+
+```yaml
 section: .text ----
 
 40 <_start>:
@@ -37,14 +52,16 @@ Done!
 
 ## Features
 
-- Implemented from scratch in C++
-- Support linear sweeping and recursive descent strategies
-- Support most basic operations
-- Support parsing ELF headers
+- Implemented entirely from scratch in C++
+- Supports both linear sweeping and recursive descent disassembly strategies
+- Handles most basic operations with precision
+- Capable of parsing ELF headers for deeper analysis
 
-## Future TODO
+## Future Improvements
 
-- Add more tests
-- Support VEX Prefix
-- Support more instructions like floating operations.
-- Support AT&T syntax
+- Expand test coverage for enhanced reliability
+- Add support for VEX Prefix
+- Incorporate additional instructions, including floating-point operations
+- Introduce support for AT&T syntax
+
+Feel free to contribute to MyDisassembler and make it even better!
