@@ -94,9 +94,6 @@ struct ELFDisAssembler {
 
     void disas(std::string section_name = ".text") {
         if (section_headers.find(section_name) != section_headers.end()) {
-            std::cout << "sh_offset: "
-                      << (int)section_headers[section_name].sh_offset
-                      << std::endl;
             da->disas((uint64_t)section_headers[section_name].sh_offset,
                       (uint64_t)section_headers[section_name].sh_offset +
                           (uint64_t)section_headers[section_name].sh_size - 1);
