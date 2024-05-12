@@ -6,10 +6,6 @@
 #include "constants.h"
 #include "utils.h"
 
-inline unsigned char getRegVal(unsigned char modrmByte) {
-    return (modrmByte >> 3) & 0x7;
-}
-
 struct REX {
     bool rexB;
     bool rexX;
@@ -84,17 +80,31 @@ struct ModRM {
     }
 
     std::string getReg(Operand operand) {
-        return operand2register(operand)->at(regByte + (rex.rexR ? 8 : 0));
+        if (operand == Operand::xmm) {
+            return "xmm" + std::to_string(regByte + (rex.rexR ? 8 : 0));
+        } else {
+            return operand2register(operand)->at(regByte + (rex.rexR ? 8 : 0));
+        }
     }
 
     std::string getAddrMode(Operand operand, std::string disp8,
                             std::string disp32) {
         std::string addrBaseReg;
         if (modByte == 3) {
-            addrBaseReg =
-                operand2register(operand)->at(rmByte + (rex.rexB ? 8 : 0));
+            if (operand == Operand::xm128) {
+                addrBaseReg =
+                    "xmm" + std::to_string(rmByte + (rex.rexB ? 8 : 0));
+            } else {
+                addrBaseReg =
+                    operand2register(operand)->at(rmByte + (rex.rexB ? 8 : 0));
+            }
         } else {
-            addrBaseReg = REGISTERS64.at(rmByte + (rex.rexB ? 8 : 0));
+            if (operand == Operand::xm128) {
+                addrBaseReg =
+                    "xmm" + std::to_string(rmByte + (rex.rexB ? 8 : 0));
+            } else {
+                addrBaseReg = REGISTERS64.at(rmByte + (rex.rexB ? 8 : 0));
+            }
         }
 
         if (modByte < 3 && rmByte == 4) {

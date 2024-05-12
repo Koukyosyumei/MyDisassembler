@@ -210,7 +210,7 @@ struct State {
         }
 
         if (modrmByte >= 0) {
-            int reg = getRegVal(modrmByte);
+            int reg = (modrmByte >> 3) & 0x7;
             mnemonic = (reg2mnem.find(reg) != reg2mnem.end()) ? reg2mnem.at(reg)
                                                               : reg2mnem.at(-1);
         } else {
@@ -382,6 +382,8 @@ struct State {
                     } else if (is64Bit(operand)) {
                         decodedTranslatedValue =
                             REGISTERS64.at(std::stoi(remOps[0]));
+                    } else if (operand == Operand::xm128) {
+                        decodedTranslatedValue = "xmm" + remOps[0];
                     }
                 }
 
@@ -391,9 +393,9 @@ struct State {
                 }
             } else if (isIMM(operand)) {
                 int immSize = 0;
-                if (operand == Operand::imm64) {
+                if (operand == Operand::imm64 || operand == Operand::ymm) {
                     immSize = 8;
-                } else if (operand == Operand::imm32) {
+                } else if (operand == Operand::imm32 || operand == Operand::xmm) {
                     immSize = 4;
                 } else if (operand == Operand::imm16) {
                     immSize = 2;

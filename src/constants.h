@@ -20,6 +20,10 @@ enum class Operand {
     rm64,
     reg,
     sreg,
+    xmm,
+    ymm,
+    xm128,
+    ym256,
     m,
     al,
     ax,
@@ -40,12 +44,14 @@ inline bool isA_REG(Operand operand) {
 
 inline bool isRM(Operand operand) {
     return operand == Operand::rm8 || operand == Operand::rm16 ||
-           operand == Operand::rm32 || operand == Operand::rm64;
+           operand == Operand::rm32 || operand == Operand::rm64 ||
+           operand == Operand::xm128;
 }
 
 inline bool isREG(Operand operand) {
     return operand == Operand::reg8 || operand == Operand::reg16 ||
-           operand == Operand::reg32 || operand == Operand::reg64;
+           operand == Operand::reg32 || operand == Operand::reg64 ||
+           operand == Operand::xmm || operand == Operand::ymm;
 }
 
 inline bool isIMM(Operand operand) {
@@ -86,7 +92,10 @@ enum class OpEnc {
     OI,
     FD,
     TD,
-    S
+    S,
+    A,
+    B,
+    C,
 };
 
 enum class Prefix {
@@ -117,9 +126,11 @@ enum class Mnemonic {
     SHLD,
     SHRD,
     MOV,
+    CMOVE,
     MOVSX,
     MOVSXD,
     MOVZX,
+    MOVAPS,
     SCASQ,
     LODSQ,
     STOSQ,
@@ -231,12 +242,16 @@ inline std::string to_string(Mnemonic mnemonic) {
             return "shrd";
         case Mnemonic::MOV:
             return "mov";
+        case Mnemonic::CMOVE:
+            return "cmove";
         case Mnemonic::MOVSX:
             return "movsx";
         case Mnemonic::MOVSXD:
             return "movsxd";
         case Mnemonic::MOVZX:
             return "movzx";
+        case Mnemonic::MOVAPS:
+            return "movaps";
         case Mnemonic::LEA:
             return "lea";
         case Mnemonic::ADD:
@@ -535,6 +550,10 @@ inline bool hasModrm(OpEnc openc) {
     switch (openc) {
         case OpEnc::I:
             return false;
+        case OpEnc::A:
+            return true;
+        case OpEnc::B:
+            return true;
         case OpEnc::D:
             return false;
         case OpEnc::M:

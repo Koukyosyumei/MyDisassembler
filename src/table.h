@@ -12,6 +12,11 @@
 const std::unordered_map<std::pair<Prefix, int>,
                          std::unordered_map<int, Mnemonic>>
     OP_LOOKUP = {
+        // CMOVE
+        {{Prefix::NONE, u2d("\x0F\x44")}, {{-1, Mnemonic::CMOVE}}},
+        // MOVAPS
+        {{Prefix::NONE, u2d("\x0F\x28")}, {{-1, Mnemonic::MOVAPS}}},
+        {{Prefix::NONE, u2d("\x0F\x29")}, {{-1, Mnemonic::MOVAPS}}},
         // ENDBR
         {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFA")}, {{-1, Mnemonic::ENDBR64}}},
         {{Prefix::NONE, u2d("\xF3\x0F\x1E\xFB")}, {{-1, Mnemonic::ENDBR32}}},
@@ -671,6 +676,13 @@ const std::unordered_map<
     std::tuple<Prefix, Mnemonic, int>,
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
     OPERAND_LOOKUP = {
+        {{Prefix::NONE, Mnemonic::CMOVE, u2d("\x0F\x44")},
+         {OpEnc::RM, {"/r"}, {Operand::reg32, Operand::rm32}}},
+        // MOVAPS
+        {{Prefix::NONE, Mnemonic::MOVAPS, u2d("\x0F\x28")}, 
+         {OpEnc::A, {"/r"}, {Operand::xmm, Operand::xm128}}},
+        {{Prefix::NONE, Mnemonic::MOVAPS, u2d("\x0F\x29")}, 
+         {OpEnc::B, {"/r"}, {Operand::xm128, Operand::xmm}}},
         // ENDBR
         {{Prefix::NONE, Mnemonic::ENDBR64, u2d("\xF3\x0F\x1E\xFA")},
          {OpEnc::NP, {}, {}}},
