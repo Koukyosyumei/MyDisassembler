@@ -11,6 +11,15 @@
 #include "disassembler.h"
 #include "header.h"
 
+const std::vector<std::string> PRINTABLE_SECTIONS = {".plt.got", ".plt.sec",
+                                                     ".text", ".init", ".fini"};
+const std::unordered_map<std::string, std::string> SECTION_LABEL_POSTFIX = {
+    {".plt.got", "@plt"},
+    {".plt.sec", "@plt"},
+    {".text", ""},
+    {".init", ""},
+    {".fini", ""}};
+
 inline void load(const std::string& binaryPath,
                  std::vector<unsigned char>& binaryBytes) {
     if (!binaryPath.empty()) {
@@ -100,43 +109,25 @@ struct ELFDisAssembler {
         std::sort(disassembledPositionsVec.begin(),
                   disassembledPositionsVec.end());
 
-        bool enter_plt_got = false;
-        bool enter_plt_sec = false;
-        bool enter_text = false;
         std::string postprefix = "";
 
+        std::unordered_map<std::string, bool> done;
+        for (const std::string& s : PRINTABLE_SECTIONS) {
+            done.insert(std::make_pair(s, false));
+        }
+
         for (const std::pair<size_t, size_t>& k : disassembledPositionsVec) {
-            if (k.first >= section_headers[".plt.got"].sh_offset &&
-                k.first < section_headers[".plt.got"].sh_offset +
-                              section_headers[".plt.got"].sh_size) {
-                if (!enter_plt_got) {
-                    std::cout << std::endl
-                              << "section: .plt.got ----" << std::endl;
-                    enter_plt_got = true;
-                    postprefix = "@plt";
-                }
-            }
-
-            else if (k.first >= section_headers[".plt.sec"].sh_offset &&
-                     k.first < section_headers[".plt.sec"].sh_offset +
-                                   section_headers[".plt.sec"].sh_size) {
-                if (!enter_plt_sec) {
-                    std::cout << std::endl
-                              << "section: .plt.sec ----" << std::endl;
-                    enter_plt_sec = true;
-                    postprefix = "@plt";
-                }
-            }
-
-            else if (k.first >= section_headers[".text"].sh_offset &&
-                     k.first < section_headers[".text"].sh_offset +
-                                   section_headers[".text"].sh_size) {
-                if (!enter_text) {
-                    std::cout << std::endl
-                              << "section: .text ----" << std::endl
-                              << std::endl;
-                    enter_text = true;
-                    postprefix = "";
+            for (const std::string& s : PRINTABLE_SECTIONS) {
+                if ((section_headers.find(s) != section_headers.end()) &&
+                    (k.first >= section_headers[s].sh_offset) &&
+                    (k.first < section_headers[s].sh_offset +
+                                   section_headers[s].sh_size)) {
+                    if (!done[s]) {
+                        std::cout << std::endl
+                                  << "section: " << s << " ----" << std::endl;
+                        done[s] = true;
+                        postprefix = SECTION_LABEL_POSTFIX.at(s);
+                    }
                 }
             }
 
@@ -152,7 +143,7 @@ struct ELFDisAssembler {
 
                     std::cout << std::endl;
                 }
-                std::cout << " " << k.first << ": ";
+                std::cout << " " << std::hex << k.first << ": ";
                 std::cout << da->disassembledInstructions.at(k);
                 std::cout << std::string(
                     da->maxInstructionStrLength -

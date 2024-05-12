@@ -27,6 +27,12 @@ int main(int argc, char* argv[]) {
     std::string binaryPath = argv[optind];
 
     ELFDisAssembler eda(binaryPath, strategy);
-    eda.disas();
+
+    eda.disas(".plt.got");
+    eda.disas(".plt.sec");
+    eda.disas(".text");
+    eda.disas(".init");
+    eda.disas(".fini");
+
     eda.print();
 }
