@@ -1,5 +1,7 @@
 # MyDisassembler
 
+This project implements the disassembler for X86-64 from scratch in C++. 
+
 ## Install
 
 ```bash
@@ -33,7 +35,16 @@ section: .text ----
 Done!
 ```
 
-
 ## Features
 
+- Implemented from scratch in C++
+- Support linear sweeping and recursive descent strategies
+- Support most basic operations
+- Support parsing ELF headers
 
+## Future TODO
+
+- Add more tests
+- Support VEX Prefix
+- Support more instructions like floating operations.
+- Support AT&T syntax
