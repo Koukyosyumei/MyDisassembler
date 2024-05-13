@@ -10,7 +10,6 @@
 
 ```bash
 > ./build/script/mydisas example/jmp.o
-sh_offset: 64
 
 section: .text ----
 
