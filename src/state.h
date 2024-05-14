@@ -52,9 +52,9 @@ inline long long decodeOffset(const std::string& val) {
  * @brief Represents the result of disassembling an instruction.
  */
 typedef struct {
-    uint64_t startAddr;      /**< The starting address of the instruction */
-    uint64_t instructionLen; /**< The length of the instruction */
-    Mnemonic mnemonic;       /**< The mnemonic of the instruction */
+    uint64_t startAddr; /**< The starting address of the instruction */
+    uint64_t disassembledInstructionSize; /**< The length of the instruction */
+    Mnemonic mnemonic; /**< The mnemonic of the instruction */
     std::string
         disassembledInstructionStr; /**< The disassembled instruction string */
     long long nextOffset;           /**< The offset to the next instruction */
@@ -70,7 +70,7 @@ struct State {
 
     bool hasInstructionPrefix, hasSegmentOverridePrefix, hasREX, hasSIB,
         hasDisp8, hasDisp32;
-    uint64_t curAddr, instructionLen, prefixOffset;
+    uint64_t curAddr, disassembledInstructionSize, prefixOffset;
     int instructionPrefixByte, opcodeByte, modrmByte, sibByte;
 
     std::string prefixInstructionStr;
@@ -107,7 +107,7 @@ struct State {
           hasDisp8(false),
           hasDisp32(false),
           curAddr(0),
-          instructionLen(0),
+          disassembledInstructionSize(0),
           prefixOffset(0),
           prefix(Prefix::NONE) {}
 
@@ -124,7 +124,7 @@ struct State {
                 disassembledInstruction.emplace_back(
                     to_string(Mnemonic::ENDBR64));
                 opEnc = OpEnc::NP;
-                instructionLen += 4;
+                disassembledInstructionSize += 4;
                 curAddr += 4;
                 return true;
             } else if (objectSource[curAddr] == 0xF3 &&
@@ -134,7 +134,7 @@ struct State {
                 disassembledInstruction.emplace_back(
                     to_string(Mnemonic::ENDBR32));
                 opEnc = OpEnc::NP;
-                instructionLen += 4;
+                disassembledInstructionSize += 4;
                 curAddr += 4;
                 return true;
             } else {
@@ -150,7 +150,7 @@ struct State {
     void parseOperandSizePrefix() {
         if (objectSource[curAddr] == 0x66) {
             prefix = Prefix::P66;
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
     }
@@ -159,12 +159,12 @@ struct State {
         if (objectSource[curAddr] == 0x64) {
             hasSegmentOverridePrefix = true;
             prefixSegmentOverrideStr = "fs";
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         } else if (objectSource[curAddr] == 0x65) {
             hasSegmentOverridePrefix = true;
             prefixSegmentOverrideStr = "gs";
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
     }
@@ -178,7 +178,7 @@ struct State {
             hasInstructionPrefix = true;
             instructionPrefixByte = objectSource[curAddr];
             prefixOffset = 1;
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
     }
@@ -191,7 +191,7 @@ struct State {
         if ((objectSource[curAddr] >> 4) == 4) {
             hasREX = true;
             rex = REX(objectSource[curAddr]);
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
 
             if (rex.rexW) {
@@ -208,7 +208,7 @@ struct State {
     void parseOpecode() {
         // eat opecode
         opcodeByte = objectSource[curAddr];
-        instructionLen += 1;
+        disassembledInstructionSize += 1;
         curAddr += 1;
 
         int pottentialOpCodeByte = (opcodeByte << 8) + objectSource[curAddr];
@@ -224,7 +224,7 @@ struct State {
               OP_LOOKUP.find(std::make_pair(
                   Prefix::NONE, pottentialOpCodeByte)) != OP_LOOKUP.end()))) {
             opcodeByte = pottentialOpCodeByte;
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
 
@@ -311,7 +311,7 @@ struct State {
                 throw std::runtime_error(
                     "Expected ModRM byte but there aren't any bytes left.");
             }
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
             modrm = ModRM(modrmByte, rex);
         }
@@ -331,7 +331,7 @@ struct State {
                     "Expected SIB byte but there aren't any bytes left.");
             }
             sib = SIB(sibByte, modrm.modByte, rex);
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
     }
@@ -358,7 +358,7 @@ struct State {
             }
 
             hasDisp8 = true;
-            instructionLen += 1;
+            disassembledInstructionSize += 1;
             curAddr += 1;
         }
 
@@ -388,7 +388,7 @@ struct State {
             }
 
             hasDisp32 = true;
-            instructionLen += 4;
+            disassembledInstructionSize += 4;
             curAddr += 4;
         }
     }
@@ -419,45 +419,44 @@ struct State {
         // ############### Process Operands ################
         std::vector<uint8_t> imm;
         for (Operand operand : operands) {
-            std::string decodedTranslatedValue;
+            std::string decodedOperandStr;
 
             if (isA_REG(operand) || operand == Operand::cl ||
                 operand == Operand::dx) {
-                decodedTranslatedValue = to_string(operand);
+                decodedOperandStr = to_string(operand);
             } else if (operand == Operand::sti) {
-                decodedTranslatedValue = "st(" + remOps[0] + ")";
+                decodedOperandStr = "st(" + remOps[0] + ")";
             } else if (isRM(operand) || isREG(operand) || isM(operand)) {
                 if (hasModrm(opEnc)) {
                     if (isRM(operand) || isM(operand)) {
-                        decodedTranslatedValue =
+                        decodedOperandStr =
                             modrm.getAddrMode(operand, disp8, disp32);
                     } else {
-                        decodedTranslatedValue = modrm.getReg(operand);
+                        decodedOperandStr = modrm.getReg(operand);
                     }
                 } else {
                     int regIdx = (hasREX && rex.rexB) ? std::stoi(remOps[0]) + 8
                                                       : std::stoi(remOps[0]);
                     if (is8Bit(operand)) {
-                        decodedTranslatedValue = REGISTERS8.at(regIdx);
+                        decodedOperandStr = REGISTERS8.at(regIdx);
                     } else if (is16Bit(operand)) {
-                        decodedTranslatedValue = REGISTERS16.at(regIdx);
+                        decodedOperandStr = REGISTERS16.at(regIdx);
                     } else if (is32Bit(operand)) {
-                        decodedTranslatedValue = REGISTERS32.at(regIdx);
+                        decodedOperandStr = REGISTERS32.at(regIdx);
                     } else if (is64Bit(operand)) {
-                        decodedTranslatedValue = REGISTERS64.at(regIdx);
+                        decodedOperandStr = REGISTERS64.at(regIdx);
                     } else if (operand == Operand::xm128) {
-                        decodedTranslatedValue = "xmm" + remOps[0];
+                        decodedOperandStr = "xmm" + remOps[0];
                     }
                 }
 
                 if ((isRM(operand) || isM(operand)) && hasModrm(opEnc) &&
                     modrm.hasSib) {
-                    decodedTranslatedValue =
-                        sib.getAddr(operand, disp8, disp32);
+                    decodedOperandStr = sib.getAddr(operand, disp8, disp32);
                 }
                 if (hasSegmentOverridePrefix) {
-                    decodedTranslatedValue =
-                        prefixSegmentOverrideStr + ":" + decodedTranslatedValue;
+                    decodedOperandStr =
+                        prefixSegmentOverrideStr + ":" + decodedOperandStr;
                 }
             } else if (isIMM(operand)) {
                 int immSize = 0;
@@ -475,7 +474,7 @@ struct State {
                     objectSource.begin() + curAddr,
                     objectSource.begin() + curAddr + immSize);
                 std::reverse(imm.begin(), imm.end());
-                instructionLen += immSize;
+                disassembledInstructionSize += immSize;
                 curAddr += immSize;
 
                 std::stringstream ss;
@@ -484,10 +483,10 @@ struct State {
                     ss << std::hex << std::setw(2) << std::setfill('0')
                        << static_cast<int>(x);
                 }
-                decodedTranslatedValue = ss.str();
+                decodedOperandStr = ss.str();
             }
 
-            disassembledOperands.emplace_back(decodedTranslatedValue);
+            disassembledOperands.emplace_back(decodedOperandStr);
         }
 
         std::string ao = "";
@@ -504,7 +503,8 @@ struct State {
             nextOffset = decodeOffset(disassembledOperands[0]);
             uint64_t labelAddr =
                 (uint64_t)(((long long)startAddr) +
-                           ((long long)instructionLen) + nextOffset);
+                           ((long long)disassembledInstructionSize) +
+                           nextOffset);
             std::stringstream ss;
             ss << std::hex << labelAddr;
             std::string labelName = ss.str();
@@ -521,7 +521,7 @@ struct State {
             }
         }
 
-        return {startAddr, instructionLen, mnemonic, disassembledInstructionStr,
-                nextOffset};
+        return {startAddr, disassembledInstructionSize, mnemonic,
+                disassembledInstructionStr, nextOffset};
     }
 };

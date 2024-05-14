@@ -140,7 +140,7 @@ struct ELFDisAssembler {
                 std::cout << " " << std::hex << k.first << ": ";
                 std::cout << da->disassembledInstructions.at(k);
                 std::cout << std::string(
-                    da->maxInstructionStrLength -
+                    da->maxInstructionStrSize -
                         da->disassembledInstructions.at(k).size(),
                     ' ');
 

@@ -44,10 +44,10 @@ struct DisAssembler {
         disassembledInstructions; /**< Mapping of index to disassembled
                                      instructions */
     std::unordered_map<uint64_t, uint64_t>
-        disassembledInstructionsLength; /**< Mapping of address to instruction
+        disassembledInstructionsSize; /**< Mapping of address to instruction
                                            length */
     std::vector<uint64_t> errorAddrs; /**< Keeps track of error bytes indexes */
-    size_t maxInstructionStrLength =
+    size_t maxInstructionStrSize =
         0; /**< The maximum length of the instruction string */
 
     /**
@@ -74,7 +74,8 @@ struct DisAssembler {
      * @param instruction The disassembled instruction.
      */
     void storeInstruction(DisassembledResult instruction) {
-        uint64_t nextAddr = instruction.startAddr + instruction.instructionLen;
+        uint64_t nextAddr =
+            instruction.startAddr + instruction.disassembledInstructionSize;
 
         // skip if this has already been decoded
         for (uint64_t idx = instruction.startAddr; idx < nextAddr; ++idx) {
@@ -91,25 +92,25 @@ struct DisAssembler {
         // mark the regions causing errors
         if (!errorAddrs.empty()) {
             uint64_t startErr = errorAddrs[0];
-            uint64_t instructionLengthErr = errorAddrs.size();
+            uint64_t disassembledInstructionSizegthErr = errorAddrs.size();
             disassembledInstructions[std::make_pair(
-                startErr, startErr + instructionLengthErr)] =
+                startErr, startErr + disassembledInstructionSizegthErr)] =
                 UNKNOWN_INSTRUCTION;
-            disassembledPositions.emplace(
-                std::make_pair(startErr, startErr + instructionLengthErr));
+            disassembledPositions.emplace(std::make_pair(
+                startErr, startErr + disassembledInstructionSizegthErr));
             errorAddrs.clear();
         }
 
         disassembledInstructions[std::make_pair(instruction.startAddr,
                                                 nextAddr)] =
             instruction.disassembledInstructionStr;
-        maxInstructionStrLength =
-            std::max(maxInstructionStrLength,
+        maxInstructionStrSize =
+            std::max(maxInstructionStrSize,
                      instruction.disassembledInstructionStr.size());
         disassembledPositions.emplace(
             std::make_pair(instruction.startAddr, nextAddr));
-        disassembledInstructionsLength[instruction.startAddr] =
-            instruction.instructionLen;
+        disassembledInstructionsSize[instruction.startAddr] =
+            instruction.disassembledInstructionSize;
 
         return;
     }
@@ -117,10 +118,11 @@ struct DisAssembler {
     /**
      * @brief Stores an error in decoding.
      * @param startAddr The starting address of the error.
-     * @param instructionLength The length of the error.
+     * @param disassembledInstructionSizegth The length of the error.
      */
-    void storeError(int startAddr, int instructionLength) {
-        for (int i = startAddr; i < startAddr + instructionLength; i++) {
+    void storeError(int startAddr, int disassembledInstructionSizegth) {
+        for (int i = startAddr; i < startAddr + disassembledInstructionSizegth;
+             i++) {
             isSuccessfullyDisAssembled[i] = false;
             errorAddrs.emplace_back(i);
         }
@@ -163,7 +165,8 @@ struct LinearSweepDisAssembler : public DisAssembler {
         while (curAddr <= endAddr) {
             try {
                 DisassembledResult instruction = step();
-                curAddr = instruction.startAddr + instruction.instructionLen;
+                curAddr = instruction.startAddr +
+                          instruction.disassembledInstructionSize;
             } catch (const std::exception &e) {
                 std::stringstream ss;
                 ss << std::hex << curAddr;
@@ -222,11 +225,12 @@ struct RecursiveDescentDisAssembler : public DisAssembler {
                 visited[curAddr] = true;
                 Mnemonic mnemonic = instruction.mnemonic;
 
-                uint64_t nextAddr =
-                    instruction.startAddr + instruction.instructionLen;
+                uint64_t nextAddr = instruction.startAddr +
+                                    instruction.disassembledInstructionSize;
                 uint64_t cfAddr =
                     (uint64_t)((long long)instruction.startAddr +
-                               (long long)instruction.instructionLen +
+                               (long long)
+                                   instruction.disassembledInstructionSize +
                                instruction.nextOffset);
 
                 if (mnemonic == Mnemonic::RET || nextAddr > endAddr) {
