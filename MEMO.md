@@ -223,7 +223,7 @@ The scale field specifies the multiplier for the index register.
 
 Note that since rsp is generally used to point to the top of the stack, the index register is not used when the index field is 100 (rsp).
 
-## 逆アセンブラ
+## Disassembler
 
 The disassembler we are implementing will decode each instruction one byte at a time, following these steps:
 
