@@ -2,6 +2,8 @@
 
 Welcome to MyDisassembler, a project designed to help learners understand X86-64 machine codes, assembly language, ELF format, and disassembly strategies. With this tool, we can explore the intricacies of low-level programming and gain insights into how binaries are structured and executed.
 
+You might find [our memo](MEMO.md) helpful if you're new to X86-64 and assembly (like us).
+
 ## Install
 
 To get started with MyDisassembler, follow these simple steps:
