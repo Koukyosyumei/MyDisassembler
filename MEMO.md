@@ -249,8 +249,6 @@ The disassembler we are implementing will decode each instruction one byte at a 
 - `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00`
 
 ```
-- breakdown
-
 1. 0x8b - Opcode for mov r32, r/m32.
    This operand type is RM, requiring the ModR/M byte
 2. 0x88 - ModR/M byte:
@@ -266,10 +264,10 @@ Thus, the full instruction `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00` translates to `m
 
 ```
 1. 0x41 - REX prefix
-   W = 0
-   R = 0
-   X = 0
-   B = 1
+      W = 0
+      R = 0
+      X = 0
+      B = 1
 2. 0x01 - Opcode for add r/m32, r32.
 3. 0x04 - ModR/M byte:
       mod = 00 (register indirect addressing, no displacement).
