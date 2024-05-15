@@ -243,3 +243,21 @@ The disassembler we are implementing will decode each instruction one byte at a 
 10.c: Decode the endianness and complement representation of the displacement obtained in steps 10.a or 10.b
 11. Using the decoded operand types, ModR/M byte, SIB byte, and displacement, determine the specific values of the operands. If the operands include an immediate value, move forward according to its size.
 ```
+
+### Examples
+
+- `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00`
+
+```
+- breakdown
+
+1. 0x8b - Opcode for mov r32, r/m32.
+   This operand type is RM, requiring the ModR/M byte
+2. 0x88 - ModR/M byte:
+   mod = 10 (memory with 32-bit displacement)
+   reg = 001 (ecx)
+   r/m = 000 (rax)
+3. 0x00, 0x01, 0x00, 0x00 - 32-bit displacement 0x00000100.
+```
+
+Thus, the full instruction `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00` translates to `mov ecx, [rax + 0x00000100]`.
