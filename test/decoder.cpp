@@ -14,7 +14,10 @@
 const std::unordered_map<uint64_t, std::string> addr2symbol;
 
 TEST(disas, ONE_BYTE) {
-    std::vector<unsigned char> obj = {0x90, 0xC3};
+    std::vector<unsigned char> obj = {
+        0x90,  // nop
+        0xC3   // ret
+    };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curAddr = 0;
@@ -58,11 +61,11 @@ TEST(disas, ONE_BYTE_IMM) {
 
 TEST(disas, ONE_BYTE_IMM_SIZE) {
     std::vector<unsigned char> obj = {
-        0xb0, 0x11,                    // mov  0x11 al
-        0x66, 0xb8, 0x22, 0x11,        // mov  0x1122 ax
-        0xb8, 0x44, 0x33, 0x22, 0x11,  // mov  0x11223344 eax
+        0xb0, 0x11,                    // mov  al 0x11
+        0x66, 0xb8, 0x22, 0x11,        // mov  ax 0x1122
+        0xb8, 0x44, 0x33, 0x22, 0x11,  // mov  eax 0x11223344
         0x48, 0xb8, 0x88, 0x77, 0x66,
-        0x55, 0x44, 0x33, 0x22, 0x11  // movabs 0x1122334455667788 rax
+        0x55, 0x44, 0x33, 0x22, 0x11  // mov rax 0x1122334455667788
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -91,12 +94,12 @@ TEST(disas, SEVERAL_ADD) {
     std::vector<unsigned char> obj = {
         0x01, 0xc1,  // add eax ecx
         0x01, 0x4,  0x25, 0x00,
-        0x00, 0x00, 0x00,        // add  eax 0x0
-        0x01, 0x00,              // add  eax (rax)
-        0x01, 0x04, 0x00,        // add  rax (rax, rax, 1)
-        0x01, 0x44, 0x00, 0x01,  // add  eax 0x1 (rax, rax, 1)
+        0x00, 0x00, 0x00,        //
+        0x01, 0x00,              // add [rax] eax
+        0x01, 0x04, 0x00,        // add [rax + rax * 1] eax
+        0x01, 0x44, 0x00, 0x01,  // add [rax + rax * 1 + 0x1] eax
         0x01, 0x84, 0x00, 0x00,
-        0x80, 0x00, 0x00  // add  eax, 0x8000(rax, rax, 1)
+        0x80, 0x00, 0x00  // add  [rax + rax * 1 + 0x00008000] eax
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -131,14 +134,14 @@ TEST(disas, SEVERAL_ADD) {
 
 TEST(disas, MODRM_REG) {
     std::vector<unsigned char> obj = {
-        0x01, 0x00,  // add rax eax
-        0x01, 0x08,  // add rax ecx
-        0x01, 0x10,  // add rax edx
-        0x01, 0x18,  // add rax ebx
-        0x01, 0x20,  // add rax esp
-        0x01, 0x28,  // add rax ebp
-        0x01, 0x30,  // add rax esi
-        0x01, 0x38   // add rax edi
+        0x01, 0x00,  // add [rax] eax
+        0x01, 0x08,  // add [rax] ecx
+        0x01, 0x10,  // add [rax] edx
+        0x01, 0x18,  // add [rax] ebx
+        0x01, 0x20,  // add [rax] esp
+        0x01, 0x28,  // add [rax] ebp
+        0x01, 0x30,  // add [rax] esi
+        0x01, 0x38   // add [rax] edi
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -185,13 +188,13 @@ TEST(disas, MODRM_REG) {
 
 TEST(disas, MODRM_MOD11) {
     std::vector<unsigned char> obj = {0x01, 0xc0,  // add eax eax
-                                      0x01, 0xc1,  // add eax ecx
-                                      0x01, 0xc2,  // add eax edx
-                                      0x01, 0xc3,  // add eax ebx
-                                      0x01, 0xc4,  // add eax esp
-                                      0x01, 0xc5,  // add eax ebp
-                                      0x01, 0xc6,  // add eax esi
-                                      0x01, 0xc7,  // add eax edi
+                                      0x01, 0xc1,  // add ecx eax
+                                      0x01, 0xc2,  // add edx eax
+                                      0x01, 0xc3,  // add ebx eax
+                                      0x01, 0xc4,  // add esp eax
+                                      0x01, 0xc5,  // add ebp eax
+                                      0x01, 0xc6,  // add esi eax
+                                      0x01, 0xc7,  // add edi eax
                                       0x03, 0xc0};
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -243,9 +246,9 @@ TEST(disas, MODRM_MOD11) {
 
 TEST(disas, MODRM_MOD_DISP) {
     std::vector<unsigned char> obj = {
-        0x8b, 0x08,                          // add eax ecx
-        0x8b, 0x48, 0x01,                    // mov
-        0x8b, 0x88, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
+        0x8b, 0x08,                          // mov ecx [rax]
+        0x8b, 0x48, 0x01,                    // mov ecx [rax + 0x1]
+        0x8b, 0x88, 0x00, 0x01, 0x00, 0x00,  // mov ecx [rax + 0x00000100]
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -267,10 +270,11 @@ TEST(disas, MODRM_MOD_DISP) {
 
 TEST(disas, MODRM_MOD00_RM101) {
     std::vector<unsigned char> obj = {
-        0x8b, 0x4d, 0x00,                    // add eax ecx
-        0x8b, 0x4d, 0x01,                    // mov
-        0x8b, 0x8d, 0x00, 0x01, 0x00, 0x00,  // add  eax 0x0
-        0x8b, 0x0c, 0x25, 0x00, 0x00, 0x08, 0x00};
+        0x8b, 0x4d, 0x00,                         // mov ecx [rbp + 0x0]
+        0x8b, 0x4d, 0x01,                         // mov ecx [rbp + 0x1]
+        0x8b, 0x8d, 0x00, 0x01, 0x00, 0x00,       // mov ecx [rbp + 0x00000100]
+        0x8b, 0x0c, 0x25, 0x00, 0x00, 0x08, 0x00  // mov ecx 0x00080000
+    };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
     disas.curAddr = 0;
@@ -296,10 +300,10 @@ TEST(disas, MODRM_MOD00_RM101) {
 
 TEST(disas, MODRM_SIB_RSP) {
     std::vector<unsigned char> obj = {
-        0x8b, 0x14, 0x08,        // add eax ecx
-        0x8b, 0x54, 0x08, 0x01,  // mov
-        0x8b, 0x14, 0x48,        // add  eax 0x0
-        0x8b, 0x14, 0x24         // add
+        0x8b, 0x14, 0x08,        // mov eda [rax + rcx * 1]
+        0x8b, 0x54, 0x08, 0x01,  // mov edx [rax + rcx * 1 + 0x1]
+        0x8b, 0x14, 0x48,        // mov edx [rax * rcx * 2]
+        0x8b, 0x14, 0x24         // mov edx [rsp]
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -326,8 +330,8 @@ TEST(disas, MODRM_SIB_RSP) {
 
 TEST(disas, ADD_IMM) {
     std::vector<unsigned char> obj = {
-        0x01, 0xc0,        // add eax ecx
-        0x83, 0xc0, 0x01,  // mov
+        0x01, 0xc0,        // add eax eax
+        0x83, 0xc0, 0x01,  // add eax 0x01
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -345,14 +349,14 @@ TEST(disas, ADD_IMM) {
 
 TEST(disas, MODRM_OPCODE) {
     std::vector<unsigned char> obj = {
-        0x83, 0xc0, 0x01,  // add eax ecx
-        0x83, 0xc8, 0x01,  // mov
-        0x83, 0xd0, 0x01,  // add eax ecx
-        0x83, 0xd8, 0x01,  // mov
-        0x83, 0xe0, 0x01,  // add eax ecx
-        0x83, 0xe8, 0x01,  // mov
-        0x83, 0xf0, 0x01,  // add eax ecx
-        0x83, 0xf8, 0x01,  // mov
+        0x83, 0xc0, 0x01,  // add eax 0x01
+        0x83, 0xc8, 0x01,  // or eax 0x01
+        0x83, 0xd0, 0x01,  // adc eax 0x01
+        0x83, 0xd8, 0x01,  // sbb eax 0x01
+        0x83, 0xe0, 0x01,  // and eax 0x01
+        0x83, 0xe8, 0x01,  // sub eax 0x01
+        0x83, 0xf0, 0x01,  // xor eax 0x01
+        0x83, 0xf8, 0x01,  // cmp eax 0x01
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -399,8 +403,8 @@ TEST(disas, MODRM_OPCODE) {
 
 TEST(disas, REXW) {
     std::vector<unsigned char> obj = {
-        0x83, 0xc0, 0x01,        // add eax ecx
-        0x48, 0x83, 0xc0, 0x01,  // mov
+        0x83, 0xc0, 0x01,        // add eax 0x01
+        0x48, 0x83, 0xc0, 0x01,  // add rax 0x01
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -417,9 +421,9 @@ TEST(disas, REXW) {
 
 TEST(disas, REXRXB) {
     std::vector<unsigned char> obj = {
-        0x44, 0x01, 0x04, 0x91,  // add eax ecx
-        0x42, 0x01, 0x04, 0x91,  // mov
-        0x41, 0x01, 0x04, 0x91   // add
+        0x44, 0x01, 0x04, 0x91,  // add [rcx + rdx * 4] r8d
+        0x42, 0x01, 0x04, 0x91,  // add [rcx + r10 * 4] eax
+        0x41, 0x01, 0x04, 0x91   // add [r9 + rdx * 4] eax
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -441,10 +445,10 @@ TEST(disas, REXRXB) {
 
 TEST(disas, TWOBYTE) {
     std::vector<unsigned char> obj = {
-        0x0f, 0xaf, 0xc3,  // add eax ecx
+        0x0f, 0xaf, 0xc3,  // imul eax ebx
         0x48, 0x0f, 0xbe, 0x04, 0x25,
-        0x00, 0x00, 0x00, 0x00,  // movsx 0x0, rax, movsx bx, rax
-        0x48, 0x63, 0xc3,        // movsx
+        0x00, 0x00, 0x00, 0x00,  // movsx rax 0x00000000
+        0x48, 0x63, 0xc3,        // movsx rax ebx
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
@@ -468,7 +472,8 @@ TEST(disas, CFInstructions) {
     std::vector<unsigned char> obj = {
         0xe8, 0x07, 0x00, 0x00, 0x00,  // call c <subroutine>
         0x74, 0x02,                    // je c
-        0xeb, 0x04,  // jmp 12 // 0xeb, 0xf2,                    // jmp 0
+        0xeb, 0x04,                    // jmp 12
+        0xeb, 0xf2,                    // jmp 0
     };
     LinearSweepDisAssembler disas(obj, addr2symbol);
 
