@@ -243,3 +243,40 @@ The disassembler we are implementing will decode each instruction one byte at a 
 10.c: Decode the endianness and complement representation of the displacement obtained in steps 10.a or 10.b
 11. Using the decoded operand types, ModR/M byte, SIB byte, and displacement, determine the specific values of the operands. If the operands include an immediate value, move forward according to its size.
 ```
+
+### Examples
+
+- `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00`
+
+```
+1. 0x8b - Opcode for mov r32, r/m32.
+   This operand type is RM, requiring the ModR/M byte
+2. 0x88 - ModR/M byte:
+      mod = 10 (memory with 32-bit displacement)
+      reg = 001 (ecx)
+      r/m = 000 (rax)
+3. 0x00, 0x01, 0x00, 0x00 - 32-bit displacement 0x00000100.
+```
+
+Thus, the full instruction `0x8b, 0x88, 0x00, 0x01, 0x00, 0x00` translates to `mov ecx, [rax + 0x00000100]`.
+
+- `0x41, 0x01, 0x04, 0x91`
+
+```
+1. 0x41 - REX prefix
+      W = 0
+      R = 0
+      X = 0
+      B = 1
+2. 0x01 - Opcode for add r/m32, r32.
+3. 0x04 - ModR/M byte:
+      mod = 00 (register indirect addressing, no displacement).
+      reg = 000 (eax).
+      r/m = 100 (indicates SIB follows).
+4. 0x91 - SIB byte:
+      scale = 10 (multiplier of 4).
+      index = 010 (rdx).
+      base = 001 (r9).
+```
+
+Thus, the full instruction `0x41, 0x01, 0x04, 0x91` translates to `add [r9 + rdx * 4], eax`.
