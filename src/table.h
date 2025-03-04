@@ -710,7 +710,7 @@ const std::unordered_map<std::pair<Prefix, int>,
 };
 
 // Lookup table for operand information
-// (prefix, operator, opcode) -> (encoding, remaining opecodes, operands)
+// (prefix, operator, opcode) -> (encoding, remaining opcodes, operands)
 const std::unordered_map<
     std::tuple<Prefix, Mnemonic, int>,
     std::tuple<OpEnc, std::vector<std::string>, std::vector<Operand>>>
@@ -1939,6 +1939,6 @@ const std::unordered_map<
          {OpEnc::MI, {"1"}, {Operand::rm64, Operand::imm8}}},
 };
 
-const std::vector<std::pair<int, int>> MULTI_BYTES_OPECODES = {
+const std::vector<std::pair<int, int>> MULTI_BYTES_OPCODES = {
     std::make_pair(4, u2d("\xF3\x0F\x1E\xFA")),
     std::make_pair(4, u2d("\xF3\x0F\x1E\xFB"))};

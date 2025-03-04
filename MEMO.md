@@ -25,7 +25,7 @@ Here, imm represents an immediate value, r denotes a register, and r/m indicates
 In x86-64, an instruction typically follows this format:
 
 ```
-|prefix | REX prefix  |     opecode      |   ModR/M    |   SIB       |     address offset     |      immediate         |
+|prefix | REX prefix  |     opcode      |   ModR/M    |   SIB       |     address offset     |      immediate         |
 |------ |-------------|------------------|-------------|-------------|------------------------|------------------------|
 |       | 0 or 1 byte | 1, 2, or 3 bytes | 0 or 1 byte | 0 or 1 byte | 0, 1, 2, 3, or 4 bytes | 0, 1, 2, 3, or 4 bytes |
 ```
@@ -49,7 +49,7 @@ LOCK: Ensures that memory access instructions like ADD or XOR are atomic.
 
 The operand-size prefix (0x66) changes the operand size to 16 bits.
 
-### Opecode
+### Opcode
 
 In x86-64, the mnemonic and operand types are determined by the prefix instruction, opcode, and the reg field of the ModR/M byte.
 

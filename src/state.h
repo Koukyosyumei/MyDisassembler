@@ -205,25 +205,25 @@ struct State {
     /**
      * @brief Parses the opcode byte.
      */
-    void parseOpecode() {
-        // eat opecode
+    void parseOpcode() {
+        // eat opcode
         opcodeByte = objectSource[curAddr];
         disassembledInstructionSize += 1;
         curAddr += 1;
 
-        int pottentialOpCodeByte = (opcodeByte << 8) + objectSource[curAddr];
+        int potentialOpCodeByte = (opcodeByte << 8) + objectSource[curAddr];
 
         if ((TWO_BYTES_OPCODE_PREFIX.find(opcodeByte) !=
              TWO_BYTES_OPCODE_PREFIX.end()) &&
-            ((OP_LOOKUP.find(std::make_pair(prefix, pottentialOpCodeByte)) !=
+            ((OP_LOOKUP.find(std::make_pair(prefix, potentialOpCodeByte)) !=
               OP_LOOKUP.end()) ||
              (prefix == Prefix::REXW &&
               OP_LOOKUP.find(std::make_pair(
-                  Prefix::REX, pottentialOpCodeByte)) != OP_LOOKUP.end()) ||
+                  Prefix::REX, potentialOpCodeByte)) != OP_LOOKUP.end()) ||
              (prefix == Prefix::REX &&
               OP_LOOKUP.find(std::make_pair(
-                  Prefix::NONE, pottentialOpCodeByte)) != OP_LOOKUP.end()))) {
-            opcodeByte = pottentialOpCodeByte;
+                  Prefix::NONE, potentialOpCodeByte)) != OP_LOOKUP.end()))) {
+            opcodeByte = potentialOpCodeByte;
             disassembledInstructionSize += 1;
             curAddr += 1;
         }
@@ -251,7 +251,7 @@ struct State {
                 to_string(prefix) + ", " + ss.str() + ")");
         }
 
-        // We sometimes need reg of modrm to determine the opecode
+        // We sometimes need reg of modrm to determine the opcode
         // e.g. 83 /4 -> AND
         //      83 /1 -> OR
         if (curAddr < objectSource.size()) {
@@ -403,14 +403,14 @@ struct State {
         curAddr = startAddr;
 
         // the general format of the x86-64 operations
-        // |prefix|REX prefix|opecode|ModR/M|SIB|address offset|immediate|
+        // |prefix|REX prefix|opcode|ModR/M|SIB|address offset|immediate|
 
         if (!parseEndBr()) {
             parsePrefixInstructions();
             parseSegmentOverridePrefix();
             parseOperandSizePrefix();
             parseREX();
-            parseOpecode();
+            parseOpcode();
             parseModRM();
             parseSIB();
             parseAddressOffset();
